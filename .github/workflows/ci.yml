@@ -12,6 +12,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - name: Audit production dependencies (non-blocking)
+        run: pnpm audit --prod || echo "::warning::pnpm audit reported issues"
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test:coverage
