@@ -8,6 +8,13 @@ wrong results — under slow networks, failed requests, fast typing, keyboard-on
 - **Try failure modes live:** use the **Simulated network** menu in the header (Realistic · Fast · Always slow ·
   Always fail), or DevTools network throttling / offline.
 
+## Security
+
+Static SPA plus read-only mock API with no auth or user data (synthetic tickets on `example.com`). Strict
+Content-Security-Policy (`'self'` only — no inline scripts or eval in the build), `nosniff`, `Referrer-Policy`,
+`Permissions-Policy`, COOP, HSTS (Vercel); API input validated by the shared Zod schema with length/size caps;
+`dangerouslySetInnerHTML` is lint-banned; `pnpm audit` in CI and Dependabot for updates.
+
 ## Run locally
 
 Prerequisites: Node ≥ 20, pnpm 9.

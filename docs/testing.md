@@ -39,13 +39,40 @@ removing `q` from the cache key fails all four race tests; not passing the Abort
 | Build + size-limit                                                          | initial JS ≤ 140 kB gzipped                                                                |
 | Playwright (Chromium + WebKit) + axe                                        | all pass; 0 serious/critical violations                                                    |
 
-## Manual checks (not automatable)
+## Performance (measured on production, 2026-10-12)
 
-- Screen readers: VoiceOver (Safari) and NVDA (Firefox/Chrome) — grid position announcements, count/error
-  announcements, drawer labelling. Results recorded below.
-- DevTools: Slow 3G throttling and Offline while typing and paging.
+Chromium, 1280×800, **CPU throttled 4×** via DevTools protocol, network simulation off:
 
-| Check              | Result              |
-| ------------------ | ------------------- |
-| VoiceOver + Safari | _pending (Phase 9)_ |
-| NVDA + Firefox     | _pending (Phase 9)_ |
+| Scenario                                     | Result                                      |
+| -------------------------------------------- | ------------------------------------------- |
+| Wheel-scrolling ~2,500 rows over 5.8 s       | **59.9 fps average, 0 long tasks (>50 ms)** |
+| Jump straight to row 9,000 (scrollbar drag)  | 0 long tasks                                |
+| Row elements in the DOM at any time          | 25 (of 10,000)                              |
+| First rows on screen (production, chaos off) | ~2 s incl. cold function + network          |
+
+Script: drives `page.mouse.wheel`, counts `requestAnimationFrame` frames and `PerformanceObserver('longtask')`
+entries. Re-run it after changes that touch rows or the grid.
+
+## Accessibility tree (automated inspection)
+
+Chromium's accessibility tree for the grid (what screen readers consume) was dumped on production: grid named
+"Support tickets", ~24 rows exposed (virtualized), each row read as one line of its cells, six column headers,
+polite `status` + assertive `alert` live regions present at load. This found one issue — CSS `text-transform:
+uppercase` leaked into header names ("SUBJECT"), which some screen readers spell letter by letter — now fixed.
+
+## Manual screen-reader checks (needs a human)
+
+Automated checks can't hear what a screen reader says. Five-minute script for each pairing:
+
+1. Load `/tickets`. Expect "10,000 tickets found" to be announced.
+2. Tab to the table. Expect the grid name, a row position (e.g. "row 2 of 10,001") and the row's content.
+3. Arrow Down twice, then End. Expect position to update to the last row.
+4. Type "refund" in search. Expect one announcement with the new count (not one per keystroke).
+5. Set Simulated network → Always fail, tick a filter. Expect the error to be announced immediately.
+6. Enter on a row. Expect the dialog's title (ticket subject) announced; Esc returns to the same row.
+7. Note whether rows read sensibly in browse vs focus mode (open question from review A11: `grid` vs `treegrid`).
+
+| Check                              | Result                       |
+| ---------------------------------- | ---------------------------- |
+| VoiceOver + Safari (macOS)         | _pending — needs manual run_ |
+| NVDA + Firefox or Chrome (Windows) | _pending — needs manual run_ |

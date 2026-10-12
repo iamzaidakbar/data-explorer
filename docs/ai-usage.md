@@ -29,6 +29,9 @@
 | zod/mini                          | Lost readable API error messages                                                                          | Probed the 400 response                            | Server loads Zod's English locale                           |
 | _Reviewer findings_               | _see below_                                                                                               |                                                    |                                                             |
 
+| Grid headers | `text-transform: uppercase` leaked into accessible names ("SUBJECT") | Accessibility-tree dump on production | Removed the transform |
+| E2E count assertions | Flaky: substring text match also hit the live region ("… tickets found") | Intermittent WebKit failure, reasoned from timing | Exact text matches |
+
 ## Reviewer findings and dispositions
 
 _Filled in after the review round (Phase 6/7)._
