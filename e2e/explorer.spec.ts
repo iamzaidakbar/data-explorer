@@ -26,6 +26,8 @@ test('T8: filters, sort, scroll position and open ticket survive reload, and Bac
   await page.getByRole('button', { name: 'Priority' }).click();
   await expect(page).toHaveURL(/status=open/);
   await expect(page).toHaveURL(/sort=-priority/);
+  // The grid body is replaced by a loading body until the new result set arrives; scroll only once rows exist.
+  await expect(ticketRows(page).first()).toBeVisible();
 
   // Scroll deep into the list; the anchor row is written to the URL once scrolling pauses.
   await gridBody(page).evaluate((el) => (el.scrollTop = 1500 * 56));
@@ -41,9 +43,9 @@ test('T8: filters, sort, scroll position and open ticket survive reload, and Bac
   expect(await gridBody(page).evaluate((el) => el.scrollTop)).toBe(1500 * 56);
 
   // Open a ticket, reload the deep link, close it: same list, same position.
-  const row = ticketRows(page)
-    .filter({ has: page.locator(':scope') })
-    .nth(3);
+  // A row inside the viewport. (Overscan rows above it are off-screen; clicking one makes Playwright scroll the
+  // list first, which the app then — correctly — records as the new position.)
+  const row = grid(page).locator('[aria-rowindex="1503"]');
   const ticketId = await row.getAttribute('data-ticket-id');
   await row.click();
   await expect(page.getByRole('dialog')).toBeVisible();
@@ -111,6 +113,8 @@ test('T9: keyboard-only search, grid navigation, open and close a ticket', async
 });
 
 test('error state, retry, and partial failure are honest and accessible', async ({ page }) => {
+  // Real simulated latency (up to 3 s per attempt, plus one retry) makes this test legitimately slow.
+  test.setTimeout(90_000);
   await page.goto('/tickets');
   await expect(page.getByText('10,000 tickets')).toBeVisible();
   await expectNoSeriousA11yViolations(page);

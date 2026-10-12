@@ -13,7 +13,10 @@ empty, error and partial-failure states; never show old data as current).
   in view plus a 25-row prefetch margin. Each page is its own query keyed `['tickets', resultSetKey, page]`.
 - Scroll position is the URL's `row=` (top visible row), written with replaceState after scrolling pauses (250 ms).
   Pager buttons and Back/Forward change `row=` and scroll the grid; the grid ignores echoes of its own writes.
-- The grid is remounted per result set (`key={resultSetKey}`) and starts at `row × rowHeight` via `initialOffset`.
+- The grid body is remounted per result set (`key={resultSetKey}`) and starts at `row × rowHeight` via
+  `initialOffset`; the header row stays mounted so focused sort buttons survive (review finding A1).
+- A page counts as loaded only if its latest fetch succeeded: TanStack Query keeps old `data` after a failed
+  refetch, and showing it would present old rows as current (review finding R1).
 - States: no page of the current set settled → loading; the anchor page failed → error (no rows); total 0 → empty;
   some pages failed → those rows show as failed plus a partial-failure banner with "Retry failed rows".
 - **Previous results are never shown while a new query loads** (we dropped the earlier "dimmed old rows" idea):
