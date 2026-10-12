@@ -17,12 +17,12 @@ Source of truth: _Frontend Developer Assignment.pdf_, Problem Statement 1. Rows 
 
 ## Deliverables (from PDF "What to Submit")
 
-- [ ] D1 Live deployment (Vercel free tier)
-- [ ] D2 Demo video ≤ 5 min including a live failure/edge case
-- [ ] D3 Public GitHub repo; README: run locally, architecture & state-management decisions, tradeoffs
-- [ ] D4 Targeted automated tests (races, rollback/failure handling)
-- [ ] D5 Sources & references list
-- [ ] D6 AI usage disclosure + shared chat history
+- [x] D1 Live deployment (Vercel free tier): https://data-explorer-puce.vercel.app (auto-deploys from `main`)
+- [ ] D2 Demo video ≤ 5 min including a live failure/edge case — _to record_
+- [x] D3 Public GitHub repo; README: run locally, architecture & state-management decisions, tradeoffs
+- [x] D4 Targeted automated tests (races, rollback/failure handling) — see docs/testing.md
+- [x] D5 Sources & references list (README)
+- [ ] D6 AI usage disclosure (docs/ai-usage.md) + shared chat history — _share link to add_
 
 ## Assumptions (ours, not in the PDF)
 
