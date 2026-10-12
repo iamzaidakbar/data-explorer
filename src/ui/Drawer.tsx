@@ -4,6 +4,8 @@ import styles from './Drawer.module.css';
 
 export interface DrawerProps {
   title: ReactNode;
+  /** Secondary line under the title (e.g. id and status badges). Not part of the accessible name. */
+  subtitle?: ReactNode;
   children: ReactNode;
   /** Called for Esc, the close button and backdrop clicks. The owner decides what closing means (e.g. navigate). */
   onClose: () => void;
@@ -19,7 +21,14 @@ export interface DrawerProps {
  * Modal side drawer built on native <dialog>.showModal(): the browser provides the focus trap, inert background,
  * top-layer stacking and Esc handling. The drawer is open for as long as it is mounted, which lets a route own it.
  */
-export function Drawer({ title, children, onClose, returnFocus, closeLabel = 'Close' }: DrawerProps) {
+export function Drawer({
+  title,
+  subtitle,
+  children,
+  onClose,
+  returnFocus,
+  closeLabel = 'Close',
+}: DrawerProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   // Latest-callback ref so the mount/unmount effect below runs exactly once yet calls the current callback.
@@ -64,10 +73,13 @@ export function Drawer({ title, children, onClose, returnFocus, closeLabel = 'Cl
       }}
     >
       <div className={styles.header}>
-        <h2 id={titleId} className={styles.title}>
-          {title}
-        </h2>
-        <IconButton label={closeLabel} icon="✕" onClick={onClose} />
+        <div className={styles.heading}>
+          <h2 id={titleId} className={styles.title}>
+            {title}
+          </h2>
+          {subtitle}
+        </div>
+        <IconButton label={closeLabel} icon="x" size="sm" className={styles.close} onClick={onClose} />
       </div>
       <div className={styles.body}>{children}</div>
     </dialog>

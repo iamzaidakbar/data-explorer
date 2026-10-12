@@ -4,16 +4,21 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  border: 1px solid currentColor;
-  border-radius: var(--radius-md);
+  border: 1px solid;
+  border-radius: var(--radius-lg);
   font-size: var(--text-sm);
 }
+.icon {
+  align-self: flex-start;
+  margin-top: 1px;
+}
 .body {
-  flex: 1 1 240px;
-  color: var(--color-text);
+  flex: 1 1 260px;
+  color: var(--color-text-secondary);
 }
 .title {
-  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
 }
 .actions {
   display: flex;
@@ -21,13 +26,16 @@
 }
 .info {
   background: var(--color-info-surface);
+  border-color: var(--color-accent-subtle);
   color: var(--color-info);
 }
 .warning {
   background: var(--color-warning-surface);
+  border-color: var(--color-warning-border);
   color: var(--color-warning);
 }
 .danger {
   background: var(--color-danger-surface);
+  border-color: var(--color-danger-border);
   color: var(--color-danger);
 }

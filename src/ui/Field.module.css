@@ -1,59 +1,162 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 6px;
   min-width: 0;
 }
+
+/* Label beside the control (toolbars, pager). */
+.inline {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.inline .controlWrap {
+  flex: 1;
+}
+
 .label {
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
 }
+
 .hint {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
+
 .error {
   font-size: var(--text-xs);
   color: var(--color-danger);
 }
+
+.controlWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
 .control {
-  min-height: var(--control-height);
+  width: 100%;
+  min-width: 0;
+  height: var(--control-md);
   padding: 0 var(--space-3);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
   background: var(--color-surface);
+  font-size: var(--text-md);
+  color: var(--color-text);
+  box-shadow: var(--shadow-xs);
+  transition:
+    border-color var(--duration-fast),
+    box-shadow var(--duration-fast);
 }
+
+.control::placeholder {
+  color: var(--color-text-muted);
+}
+
+.control:hover {
+  border-color: var(--color-text-muted);
+}
+
+.control:focus-visible {
+  outline: none;
+  border-color: var(--color-focus);
+  box-shadow: var(--ring);
+}
+
 .control[aria-invalid='true'] {
   border-color: var(--color-danger);
 }
+
+.sm .control {
+  height: var(--control-sm);
+  font-size: var(--text-sm);
+}
+
+.withIcon .control {
+  padding-left: 34px;
+}
+
+.leadingIcon {
+  position: absolute;
+  left: 11px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+/* Custom select arrow (consistent across browsers). */
+select.control {
+  appearance: none;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+.selectArrow {
+  position: absolute;
+  right: 10px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+/* Native date picker indicator: keep it, but tone it down. */
+.control::-webkit-calendar-picker-indicator {
+  opacity: 0.6;
+  cursor: pointer;
+}
+
 .fieldset {
   margin: 0;
   padding: 0;
   border: 0;
   min-width: 0;
 }
+
 .legend {
   padding: 0;
   margin-bottom: var(--space-2);
   font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
 }
+
 .options {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  display: grid;
+  gap: 2px var(--space-2);
 }
+
+.columns2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .option {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   min-height: 28px;
-  font-size: var(--text-sm);
+  padding: 0 var(--space-1);
+  margin: 0 calc(-1 * var(--space-1));
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
+
+.option:hover {
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
+}
+
 .option input {
+  flex-shrink: 0;
   width: 16px;
   height: 16px;
   margin: 0;
   accent-color: var(--color-accent);
+  cursor: pointer;
 }

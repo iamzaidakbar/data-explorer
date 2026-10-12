@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Icon } from './Icon';
 import styles from './Banner.module.css';
 
 export interface BannerProps {
@@ -16,6 +17,7 @@ export interface BannerProps {
 export function Banner({ tone = 'info', title, children, actions, role }: BannerProps) {
   return (
     <div className={`${styles.banner} ${styles[tone]}`} role={role}>
+      {tone !== 'info' && <Icon name="alert" size={16} className={styles.icon} />}
       <div className={styles.body}>
         {title && <p className={styles.title}>{title}</p>}
         {children}

@@ -5,3 +5,4 @@ export { Drawer, type DrawerProps } from './Drawer';
 export { CheckboxGroup, SelectField, TextField } from './Field';
 export { Skeleton } from './Skeleton';
 export { VisuallyHidden, visuallyHiddenClass } from './VisuallyHidden';
+export { Icon, type IconName } from './Icon';

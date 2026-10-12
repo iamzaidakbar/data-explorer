@@ -20,12 +20,18 @@ body {
   font-family: var(--font-sans);
   font-size: var(--text-md);
   line-height: var(--leading);
+  letter-spacing: var(--tracking-tight);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 h1,
 h2,
 h3,
-p {
+p,
+dl,
+dd {
   margin: 0;
 }
 
@@ -34,7 +40,13 @@ input,
 select,
 textarea {
   font: inherit;
+  letter-spacing: inherit;
   color: inherit;
+}
+
+a {
+  color: var(--color-accent);
+  text-underline-offset: 2px;
 }
 
 /* One visible, high-contrast focus style for every interactive element (keyboard users only). */
@@ -45,4 +57,8 @@ textarea {
 
 :focus:not(:focus-visible) {
   outline: none;
+}
+
+::selection {
+  background: var(--color-accent-subtle);
 }
