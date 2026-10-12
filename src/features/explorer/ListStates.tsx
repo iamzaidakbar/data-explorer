@@ -46,6 +46,21 @@ export function ErrorState({
   );
 }
 
+export function OfflineState({ query }: { query: string }) {
+  return (
+    <div className={styles.state}>
+      <span className={styles.stateIcon}>
+        <Icon name="wifiOff" size={22} />
+      </span>
+      <p className={styles.stateTitle}>You’re offline</p>
+      <p className={styles.stateText}>
+        {query ? `Results for “${query}”` : 'These results'} will load automatically when your connection
+        returns. Nothing is shown in the meantime because older results might not match this search.
+      </p>
+    </div>
+  );
+}
+
 export function EmptyState({ canClear, onClear }: { canClear: boolean; onClear: () => void }) {
   return (
     <div className={styles.state}>

@@ -24,10 +24,16 @@ export interface RowWindow {
 }
 
 export type RowState =
-  { kind: 'loaded'; ticket: Ticket } | { kind: 'loading' } | { kind: 'failed'; page: number };
+  | { kind: 'loaded'; ticket: Ticket }
+  | { kind: 'loading' }
+  /** The page's request is paused until the browser is back online. */
+  | { kind: 'offline' }
+  | { kind: 'failed'; page: number };
 
 export type TicketListState =
   | { kind: 'loading' }
+  /** Nothing loaded for this result set and the request is paused until the browser is back online. */
+  | { kind: 'offline' }
   | { kind: 'error'; error: Error; retrying: boolean; retry: () => void; failedAt: number }
   | { kind: 'empty' }
   | {
@@ -61,6 +67,8 @@ function cachedTotal(queryClient: QueryClient, setKey: string): number | undefin
  */
 const isUsable = (r: UseQueryResult<TicketPage> | undefined) => !!r?.data && r.status === 'success';
 const hasFailed = (r: UseQueryResult<TicketPage> | undefined) => !!r && r.status === 'error' && !r.isFetching;
+/** TanStack Query pauses (rather than fails) requests while offline and resumes them on reconnect. */
+const isPaused = (r: UseQueryResult<TicketPage> | undefined) => r?.fetchStatus === 'paused';
 
 export function useTicketPages(state: ExplorerState, window: RowWindow | null): TicketListState {
   const queryClient = useQueryClient();
@@ -106,7 +114,7 @@ export function useTicketPages(state: ExplorerState, window: RowWindow | null): 
         failedAt: anchor.errorUpdatedAt,
       };
     }
-    return { kind: 'loading' };
+    return isPaused(anchor) ? { kind: 'offline' } : { kind: 'loading' };
   }
   if (total === 0) return { kind: 'empty' };
 
@@ -120,12 +128,14 @@ export function useTicketPages(state: ExplorerState, window: RowWindow | null): 
     failureStamp: failedPages.reduce((sum, page) => sum + (byPage.get(page)?.errorUpdatedAt ?? 0), 0),
     isFetching: results.some((r) => r?.isFetching),
     retryFailed: () => failedPages.forEach((page) => void byPage.get(page)?.refetch()),
-    rowAt: (index) => {
+    rowAt: (index): RowState => {
       const page = Math.floor(index / PAGE_SIZE);
       const result = byPage.get(page);
-      if (hasFailed(result)) return { kind: 'failed', page };
       const ticket = isUsable(result) ? result?.data?.items[index - page * PAGE_SIZE] : undefined;
-      return ticket ? { kind: 'loaded', ticket } : { kind: 'loading' };
+      if (ticket) return { kind: 'loaded', ticket };
+      if (isPaused(result)) return { kind: 'offline' };
+      if (hasFailed(result)) return { kind: 'failed', page };
+      return { kind: 'loading' };
     },
   };
 }

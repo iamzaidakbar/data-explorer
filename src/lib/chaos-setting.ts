@@ -6,9 +6,9 @@ import { asChaosMode, type ChaosMode } from '../shared/chaos';
  * localStorage when available and sent to the mock API as the x-chaos header.
  */
 export const CHAOS_OPTIONS: readonly { value: ChaosMode; label: string }[] = [
-  { value: 'default', label: 'Realistic (0.2–3 s, 10% fail)' },
-  { value: 'off', label: 'Fast and reliable' },
-  { value: 'slow', label: 'Always slow (3 s)' },
+  { value: 'default', label: 'Realistic' }, // 0.2–3 s latency, ~10% failures (the assignment's spec)
+  { value: 'off', label: 'Fast & reliable' },
+  { value: 'slow', label: 'Always slow' },
   { value: 'fail', label: 'Always fail' },
 ];
 

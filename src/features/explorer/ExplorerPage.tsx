@@ -7,7 +7,7 @@ import { Button, Drawer, SelectField } from '../../ui';
 import { ActiveFilters } from './ActiveFilters';
 import { SORT_OPTIONS } from './columns';
 import { FiltersPanel } from './FiltersPanel';
-import { EmptyState, ErrorState, PartialFailureBanner } from './ListStates';
+import { EmptyState, ErrorState, OfflineState, PartialFailureBanner } from './ListStates';
 import { Pager } from './Pager';
 import { SearchBox } from './SearchBox';
 import { TicketGrid } from './TicketGrid';
@@ -147,6 +147,7 @@ function Results({ explorer, toolbar }: { explorer: ExplorerParams; toolbar: Rea
           {list.kind === 'ready' && `${formatCount(list.total)} ${list.total === 1 ? 'ticket' : 'tickets'}`}
           {list.kind === 'empty' && '0 tickets'}
           {list.kind === 'loading' && <span className={styles.muted}>Loading…</span>}
+          {list.kind === 'offline' && <span className={styles.muted}>Waiting for connection…</span>}
         </p>
         <ActiveFilters
           filters={state}
@@ -167,6 +168,7 @@ function Results({ explorer, toolbar }: { explorer: ExplorerParams; toolbar: Rea
           <ErrorState error={list.error} retrying={list.retrying} onRetry={retry(list.retry)} />
         )}
         {list.kind === 'empty' && <EmptyState canClear={hasQuery} onClear={explorer.clearAll} />}
+        {list.kind === 'offline' && <OfflineState query={state.q} />}
         {(list.kind === 'loading' || list.kind === 'ready') && (
           <TicketGrid
             list={list}
@@ -181,13 +183,7 @@ function Results({ explorer, toolbar }: { explorer: ExplorerParams; toolbar: Rea
           />
         )}
         {list.kind === 'ready' && (
-          <Pager
-            total={list.total}
-            pageSize={PAGE_SIZE}
-            row={state.row}
-            visible={visible}
-            onJump={explorer.jumpToRow}
-          />
+          <Pager total={list.total} pageSize={PAGE_SIZE} visible={visible} onJump={explorer.jumpToRow} />
         )}
       </div>
     </section>

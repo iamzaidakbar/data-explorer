@@ -7,8 +7,6 @@ import styles from './explorer.module.css';
 export interface PagerProps {
   total: number;
   pageSize: number;
-  /** Current anchor row (from the URL). */
-  row: number;
   /** Rows currently visible, for the "Rows X–Y" summary. */
   visible: { start: number; end: number };
   onJump: (row: number) => void;
@@ -57,13 +55,14 @@ function PageButton({
 }
 
 /** Keyboard-friendly paging over the virtual list: each page jump scrolls to that page's first row. */
-export function Pager({ total, pageSize, row, visible, onJump }: PagerProps) {
+export function Pager({ total, pageSize, visible, onJump }: PagerProps) {
   const announce = useAnnounce();
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   // When the end of the list is visible we are on the last page, even though the top visible row (the URL anchor)
   // may belong to an earlier page — the last page is often shorter than the viewport.
   const atEnd = visible.end >= total - 1;
-  const page = atEnd ? pageCount - 1 : Math.min(pageCount - 1, Math.floor(row / pageSize));
+  // The visible range updates on every scroll frame; the URL anchor (`row`) only after scrolling pauses.
+  const page = atEnd ? pageCount - 1 : Math.min(pageCount - 1, Math.floor(visible.start / pageSize));
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string>();
   const formId = useId();

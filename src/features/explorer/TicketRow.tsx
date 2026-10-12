@@ -16,7 +16,7 @@ export interface TicketRowProps {
   index: number;
   start: number;
   height: number;
-  status: 'loaded' | 'loading' | 'failed';
+  status: 'loaded' | 'loading' | 'offline' | 'failed';
   /** Stable reference from the query cache, so unchanged rows skip re-rendering. */
   ticket: Ticket | undefined;
   tabbable: boolean;
@@ -67,6 +67,8 @@ export const TicketRow = memo(function TicketRow({
         >
           {status === 'failed' ? (
             <span className={styles.failedText}>Row {index + 1} couldn’t be loaded</span>
+          ) : status === 'offline' ? (
+            <span className={styles.failedText}>Row {index + 1}: waiting for connection…</span>
           ) : (
             <>
               <VisuallyHidden>Loading row {index + 1}</VisuallyHidden>

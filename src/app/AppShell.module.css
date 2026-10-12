@@ -61,7 +61,7 @@
 }
 
 .chaos select {
-  width: 200px;
+  width: 168px;
 }
 
 .main {
@@ -82,7 +82,7 @@
     white-space: nowrap;
   }
   .chaos select {
-    width: 168px;
+    width: 152px;
   }
   .main {
     padding-top: var(--space-4);

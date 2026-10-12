@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { Link, Outlet } from 'react-router';
 import { Icon } from '../ui';
 import { ChaosControl } from './ChaosControl';
+import { ConnectionBanner } from './ConnectionBanner';
 import styles from './AppShell.module.css';
 
 export const MAIN_ID = 'main-content';
@@ -30,6 +31,7 @@ export function AppShell() {
         </Link>
         <ChaosControl className={styles.chaos} />
       </header>
+      <ConnectionBanner />
       <main id={MAIN_ID} ref={mainRef} tabIndex={-1} className={styles.main}>
         <Outlet />
       </main>

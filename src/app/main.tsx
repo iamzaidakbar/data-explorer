@@ -5,6 +5,7 @@ import { createBrowserRouter } from 'react-router';
 // The react-dom flavour wires up flushSync, used for discrete URL updates (see useExplorerParams).
 import { RouterProvider } from 'react-router/dom';
 import { AnnouncerProvider } from '../lib/announcer';
+import { syncInitialOnlineStatus } from '../lib/online-status';
 import { createQueryClient } from './queryClient';
 import { routes } from './router';
 import '../ui/global.css';
@@ -12,6 +13,7 @@ import '../ui/global.css';
 const root = document.getElementById('root');
 if (!root) throw new Error('#root missing from index.html');
 
+syncInitialOnlineStatus();
 const queryClient = createQueryClient();
 const router = createBrowserRouter(routes);
 

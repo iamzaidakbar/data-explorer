@@ -9,6 +9,7 @@ export function ChaosControl({ className }: { className?: string }) {
     <SelectField
       className={className}
       label="Simulated network"
+      title="Realistic = 0.2–3 s latency and ~10% failed requests"
       size="sm"
       inline
       options={CHAOS_OPTIONS}

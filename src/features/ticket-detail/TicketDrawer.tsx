@@ -104,6 +104,10 @@ export function TicketDrawerRoute() {
         >
           <p>{query.error.message}</p>
         </Banner>
+      ) : !query.data && query.fetchStatus === 'paused' ? (
+        <Banner tone="warning" title="You’re offline">
+          <p>This ticket will load automatically when your connection returns.</p>
+        </Banner>
       ) : query.data ? (
         // A failed refetch keeps old `data`; the error branch above wins so it is never shown as current.
         <TicketDetails ticket={query.data} />
