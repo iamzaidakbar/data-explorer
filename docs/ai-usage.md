@@ -32,6 +32,9 @@
 | Grid headers | `text-transform: uppercase` leaked into accessible names ("SUBJECT") | Accessibility-tree dump on production | Removed the transform |
 | E2E count assertions | Flaky: substring text match also hit the live region ("… tickets found") | Intermittent WebKit failure, reasoned from timing | Exact text matches |
 
+| UI refinement: a text replacement for inline date labels | Silently missed after code moved (indentation changed) | Screenshot still showed stacked labels | Regex-based edit + re-capture |
+| UI refinement: filters sheet focus return | Relied on "previously focused element"; Safari doesn't focus buttons on click | New WebKit E2E test failed | Explicit return-focus target |
+
 ## Reviewer findings and dispositions
 
 _Filled in after the review round (Phase 6/7)._

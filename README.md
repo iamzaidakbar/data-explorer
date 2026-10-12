@@ -8,6 +8,17 @@ wrong results — under slow networks, failed requests, fast typing, keyboard-on
 - **Try failure modes live:** use the **Simulated network** menu in the header (Realistic · Fast · Always slow ·
   Always fail), or DevTools network throttling / offline.
 
+## Design system
+
+Small and dependency-free: CSS custom-property tokens (`src/ui/tokens.css`: colour roles for light and dark,
+4px spacing grid, 32/36px control heights, type scale, radii, shadows, motion) and ~10 primitives in `src/ui`
+(Button/IconButton, TextField/SelectField/CheckboxGroup with inline and compact variants, Badge, Banner, Drawer,
+Skeleton, Icon — paths adapted from Lucide). Layout rules that are verified by measurement, not by eye: grid header
+and cell left edges match exactly (the body's scrollbar width is measured and mirrored in the header), the sidebar
+and results column share top and bottom edges, and no screen size from 320px up scrolls horizontally. Filters are a
+sidebar on desktop and an accessible slide-over sheet at ≤1024px; columns collapse with the table's own width
+(container queries) and a "Sort by" control keeps every sort reachable on phones.
+
 ## Security
 
 Static SPA plus read-only mock API with no auth or user data (synthetic tickets on `example.com`). Strict
