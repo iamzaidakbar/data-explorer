@@ -9,6 +9,8 @@ export function ChaosControl({ className }: { className?: string }) {
     <SelectField
       className={className}
       label="Simulated network"
+      size="sm"
+      inline
       options={CHAOS_OPTIONS}
       value={mode}
       onChange={(e) => setChaosMode(asChaosMode(e.target.value) ?? 'default')}

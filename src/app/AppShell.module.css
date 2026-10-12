@@ -2,12 +2,13 @@
   position: absolute;
   top: var(--space-2);
   left: var(--space-2);
-  z-index: 10;
+  z-index: 20;
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
   background: var(--color-accent);
   color: var(--color-on-accent);
   font-weight: var(--weight-medium);
+  text-decoration: none;
   transform: translateY(-200%);
 }
 
@@ -18,23 +19,27 @@
 .header {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 10;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   height: var(--header-height);
-  padding: 0 var(--space-5);
+  padding: 0 var(--page-gutter);
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  backdrop-filter: saturate(180%) blur(8px);
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  color: inherit;
-  font-weight: var(--weight-bold);
+  gap: 10px;
+  color: var(--color-text);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
   text-decoration: none;
+  white-space: nowrap;
+  border-radius: var(--radius-sm);
 }
 
 .logo {
@@ -43,25 +48,24 @@
   width: 28px;
   height: 28px;
   border-radius: var(--radius-md);
-  background: var(--color-accent);
+  background: linear-gradient(
+    135deg,
+    var(--color-accent),
+    color-mix(in srgb, var(--color-accent) 70%, #7c3aed)
+  );
   color: var(--color-on-accent);
-  font-size: var(--text-sm);
 }
 
 .chaos {
-  flex-direction: row;
-  align-items: center;
-  gap: var(--space-2);
   margin-left: auto;
 }
 
 .chaos select {
-  min-height: 32px;
-  font-size: var(--text-sm);
+  width: 200px;
 }
 
 .main {
-  padding: var(--space-5);
+  padding: var(--space-6) var(--page-gutter);
 }
 
 .main:focus {
@@ -77,20 +81,16 @@
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
-  .header,
-  .chaos {
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-2);
-    margin-left: auto;
-  }
-
   .chaos select {
-    min-height: 32px;
-    font-size: var(--text-sm);
+    width: 168px;
   }
-
   .main {
-    padding-inline: var(--space-4);
+    padding-top: var(--space-4);
+  }
+}
+
+@media (max-width: 360px) {
+  .brandText {
+    display: none;
   }
 }

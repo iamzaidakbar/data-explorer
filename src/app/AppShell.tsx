@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { Link, Outlet } from 'react-router';
+import { Icon } from '../ui';
 import { ChaosControl } from './ChaosControl';
 import styles from './AppShell.module.css';
 
@@ -21,11 +22,11 @@ export function AppShell() {
         Skip to main content
       </a>
       <header className={styles.header}>
-        <Link to="/tickets" className={styles.brand}>
+        <Link to="/tickets" className={styles.brand} aria-label="Ticket Explorer home">
           <span className={styles.logo} aria-hidden="true">
-            TE
+            <Icon name="ticket" size={16} />
           </span>
-          Ticket Explorer
+          <span className={styles.brandText}>Ticket Explorer</span>
         </Link>
         <ChaosControl className={styles.chaos} />
       </header>
