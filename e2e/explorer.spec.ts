@@ -20,7 +20,7 @@ test('T8: filters, sort, scroll position and open ticket survive reload, and Bac
   page,
 }) => {
   await page.goto('/tickets');
-  await expect(page.getByText('10,000 tickets')).toBeVisible();
+  await expect(page.getByText('10,000 tickets', { exact: true })).toBeVisible();
 
   await page.getByRole('checkbox', { name: 'Open' }).check();
   await page.getByRole('button', { name: 'Priority' }).click();
@@ -61,7 +61,7 @@ test('T8: filters, sort, scroll position and open ticket survive reload, and Bac
   await page.goBack();
   await expect(page).not.toHaveURL(/sort=/);
   await page.goBack();
-  await expect(page.getByText('10,000 tickets')).toBeVisible();
+  await expect(page.getByText('10,000 tickets', { exact: true })).toBeVisible();
   await expect(page.getByRole('checkbox', { name: 'Open' })).not.toBeChecked();
   await page.goForward();
   await expect(page.getByRole('checkbox', { name: 'Open' })).toBeChecked();
@@ -69,7 +69,7 @@ test('T8: filters, sort, scroll position and open ticket survive reload, and Bac
 
 test('T9: keyboard-only search, grid navigation, open and close a ticket', async ({ page, browserName }) => {
   await page.goto('/tickets');
-  await expect(page.getByText('10,000 tickets')).toBeVisible();
+  await expect(page.getByText('10,000 tickets', { exact: true })).toBeVisible();
 
   await page.getByRole('searchbox', { name: 'Search tickets' }).focus();
   await page.keyboard.type('refund');
@@ -116,7 +116,7 @@ test('error state, retry, and partial failure are honest and accessible', async 
   // Real simulated latency (up to 3 s per attempt, plus one retry) makes this test legitimately slow.
   test.setTimeout(90_000);
   await page.goto('/tickets');
-  await expect(page.getByText('10,000 tickets')).toBeVisible();
+  await expect(page.getByText('10,000 tickets', { exact: true })).toBeVisible();
   await expectNoSeriousA11yViolations(page);
 
   await page.getByLabel('Simulated network').selectOption('fail');
