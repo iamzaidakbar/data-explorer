@@ -1,3 +1,4 @@
+import { AGENTS } from '../src/shared/agents.js';
 import type { Channel, Priority, Status, Ticket } from '../src/shared/contract.js';
 
 export const DATASET_SIZE = 10_000;
@@ -135,32 +136,6 @@ const LAST = [
   'Novak',
   'Kowalski',
   'Haddad',
-] as const;
-export const AGENTS = [
-  'Alex Rivera',
-  'Blair Chen',
-  'Casey Morgan',
-  'Devon Patel',
-  'Emery Okafor',
-  'Finley Brooks',
-  'Gray Nakamura',
-  'Harper Singh',
-  'Indy Larsen',
-  'Jordan Mensah',
-  'Kai Fischer',
-  'Logan Dubois',
-  'Morgan Ito',
-  'Noel Garcia',
-  'Oakley Hassan',
-  'Parker Rossi',
-  'Quinn Tanaka',
-  'Reese Kowalski',
-  'Sage Novak',
-  'Taylor Yilmaz',
-  'Umi Costa',
-  'Val Haddad',
-  'Wren Lopez',
-  'Xen Bianchi',
 ] as const;
 const TAGS = [
   'billing',

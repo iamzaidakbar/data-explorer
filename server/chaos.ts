@@ -1,3 +1,7 @@
+import { asChaosMode, type ChaosMode } from '../src/shared/chaos.js';
+
+export { CHAOS_HEADER, CHAOS_MODES, type ChaosMode } from '../src/shared/chaos.js';
+
 /**
  * Latency and failure injection required by the assignment (R3): 200 ms–3 s latency, ~1 in 10 requests fail.
  * The defaults must not change. Overrides exist only for demos and deterministic tests.
@@ -6,23 +10,9 @@ export const MIN_LATENCY_MS = 200;
 export const MAX_LATENCY_MS = 3000;
 export const FAILURE_RATE = 0.1;
 
-/**
- * default: random latency + 10% failures (production behaviour)
- * off:     no latency, no failures (E2E determinism)
- * fail:    random latency, then always fail (demoing error UI)
- * slow:    maximum latency, no failures (demoing loading/race UI)
- */
-export const CHAOS_MODES = ['default', 'off', 'fail', 'slow'] as const;
-export type ChaosMode = (typeof CHAOS_MODES)[number];
-export const CHAOS_HEADER = 'x-chaos';
-
-function asMode(value: string | null | undefined): ChaosMode | undefined {
-  return CHAOS_MODES.find((m) => m === value?.trim().toLowerCase());
-}
-
 /** A per-request header wins over the process-wide env var; unknown values fall back to default. */
 export function resolveChaosMode(header: string | null, env: string | undefined): ChaosMode {
-  return asMode(header) ?? asMode(env) ?? 'default';
+  return asChaosMode(header) ?? asChaosMode(env) ?? 'default';
 }
 
 export interface ChaosDecision {
