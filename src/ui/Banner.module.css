@@ -1,0 +1,33 @@
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+.body {
+  flex: 1 1 240px;
+  color: var(--color-text);
+}
+.title {
+  font-weight: var(--weight-bold);
+}
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.info {
+  background: var(--color-info-surface);
+  color: var(--color-info);
+}
+.warning {
+  background: var(--color-warning-surface);
+  color: var(--color-warning);
+}
+.danger {
+  background: var(--color-danger-surface);
+  color: var(--color-danger);
+}
