@@ -27,6 +27,7 @@ export function Drawer({ title, children, onClose, returnFocus, closeLabel = 'Cl
   useLayoutEffect(() => {
     returnFocusRef.current = returnFocus;
   });
+  const unmounting = useRef(false);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -34,6 +35,7 @@ export function Drawer({ title, children, onClose, returnFocus, closeLabel = 'Cl
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (!dialog.open) dialog.showModal();
     return () => {
+      unmounting.current = true;
       if (dialog.open) dialog.close();
       if (returnFocusRef.current) returnFocusRef.current();
       else if (previouslyFocused?.isConnected) previouslyFocused.focus();
@@ -51,6 +53,11 @@ export function Drawer({ title, children, onClose, returnFocus, closeLabel = 'Cl
         // Esc: let the owner close (e.g. via navigation) instead of the browser closing the dialog behind React.
         e.preventDefault();
         onClose();
+      }}
+      onClose={() => {
+        // The browser can close a modal dialog itself (e.g. Chrome may skip a cancelable `cancel` event for Esc
+        // without prior user activation). Keep the owner in sync so the URL never claims an open drawer.
+        if (!unmounting.current) onClose();
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();

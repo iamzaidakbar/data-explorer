@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { ApiRequestError, fetchTicket } from '../../lib/api-client';
 import { formatCount, formatDateTime } from '../../lib/format';
@@ -39,7 +39,12 @@ export function TicketDrawerRoute() {
     retry: (failures, error) => !(error instanceof ApiRequestError && error.status === 404) && failures < 1,
   });
 
+  // Esc auto-repeat or a double click can request close twice before the navigation lands; stepping back twice
+  // could leave the app entirely.
+  const closing = useRef(false);
   const close = useCallback(() => {
+    if (closing.current) return;
+    closing.current = true;
     // Opened from the list: step back to that exact history entry. Deep link: replace with the list URL.
     if (openedFromList(location.state)) navigate(-1);
     else navigate({ pathname: '/tickets', search: location.search }, { replace: true });
@@ -63,21 +68,26 @@ export function TicketDrawerRoute() {
         <p>
           There is no ticket with ID <strong>{ticketId}</strong>. It may have been mistyped in the link.
         </p>
-      ) : query.data ? (
-        <TicketDetails ticket={query.data} />
       ) : query.isError ? (
         <Banner
           tone="danger"
           role="alert"
           title="Couldn’t load this ticket"
           actions={
-            <Button variant="primary" onClick={() => void query.refetch()} disabled={query.isFetching}>
+            <Button
+              variant="primary"
+              aria-disabled={query.isFetching}
+              onClick={() => !query.isFetching && void query.refetch()}
+            >
               {query.isFetching ? 'Retrying…' : 'Retry'}
             </Button>
           }
         >
           <p>{query.error.message}</p>
         </Banner>
+      ) : query.data ? (
+        // A failed refetch keeps old `data`; the error branch above wins so it is never shown as current.
+        <TicketDetails ticket={query.data} />
       ) : (
         <div className={styles.loading} aria-busy="true">
           <VisuallyHidden>Loading ticket {ticketId}</VisuallyHidden>

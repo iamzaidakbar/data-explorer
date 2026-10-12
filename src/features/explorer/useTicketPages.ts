@@ -1,4 +1,4 @@
-import { useQueries, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useQueries, useQueryClient, type QueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { fetchTicketPage } from '../../lib/api-client';
 import { resultSetKey, toTicketQuery, type ExplorerState } from '../../lib/url-state';
 import type { Ticket, TicketPage } from '../../shared/contract';
@@ -28,7 +28,7 @@ export type RowState =
 
 export type TicketListState =
   | { kind: 'loading' }
-  | { kind: 'error'; error: Error; retrying: boolean; retry: () => void }
+  | { kind: 'error'; error: Error; retrying: boolean; retry: () => void; failedAt: number }
   | { kind: 'empty' }
   | {
       kind: 'ready';
@@ -37,17 +37,30 @@ export type TicketListState =
       rowAt: (index: number) => RowState;
       /** Pages in view that failed and are not currently retrying: the partial-failure state. */
       failedPages: number[];
+      /** Changes on every new page failure, so repeated failures can be announced again. */
+      failureStamp: number;
       retryFailed: () => void;
       isFetching: boolean;
     };
 
-/** Total for a result set from any cached page of it. Never reads another set's pages. */
+/**
+ * Total for a result set from any cached page of it whose latest fetch succeeded. Never reads another set's pages,
+ * and never trusts a page whose most recent refetch failed.
+ */
 function cachedTotal(queryClient: QueryClient, setKey: string): number | undefined {
-  for (const [, page] of queryClient.getQueriesData<TicketPage>({ queryKey: ['tickets', setKey] })) {
-    if (page) return page.total;
+  for (const query of queryClient.getQueryCache().findAll({ queryKey: ['tickets', setKey] })) {
+    const page = query.state.data as TicketPage | undefined;
+    if (page && query.state.status === 'success') return page.total;
   }
   return undefined;
 }
+
+/**
+ * A page is usable only if its latest fetch succeeded. TanStack Query keeps the previous `data` when a refetch
+ * fails (e.g. after staleTime), and showing it would present old rows as current — the assignment forbids that.
+ */
+const isUsable = (r: UseQueryResult<TicketPage> | undefined) => !!r?.data && r.status === 'success';
+const hasFailed = (r: UseQueryResult<TicketPage> | undefined) => !!r && r.status === 'error' && !r.isFetching;
 
 export function useTicketPages(state: ExplorerState, window: RowWindow | null): TicketListState {
   const queryClient = useQueryClient();
@@ -78,41 +91,41 @@ export function useTicketPages(state: ExplorerState, window: RowWindow | null): 
   });
 
   const byPage = new Map(pages.map((page, i) => [page, results[i]]));
-  const total = results.find((r) => r?.data)?.data?.total ?? knownTotal;
+  const anchor = byPage.get(anchorPage);
+  // knownTotal only counts pages whose latest fetch succeeded, so it stays valid when every *visible* page fails:
+  // that is a partial failure (rows marked failed), not a reason to discard the whole result set.
+  const total = results.find(isUsable)?.data?.total ?? knownTotal;
 
   if (total === undefined) {
-    const anchor = byPage.get(anchorPage);
-    if (anchor?.isError) {
+    if (anchor?.status === 'error') {
       return {
         kind: 'error',
         error: anchor.error,
         retrying: anchor.isFetching,
         retry: () => void anchor.refetch(),
+        failedAt: anchor.errorUpdatedAt,
       };
     }
     return { kind: 'loading' };
   }
   if (total === 0) return { kind: 'empty' };
 
-  const failedPages = pages.filter((page) => {
-    const r = byPage.get(page);
-    return r?.isError && !r.data && !r.isFetching;
-  });
+  const failedPages = pages.filter((page) => hasFailed(byPage.get(page)));
 
   return {
     kind: 'ready',
     setKey,
     total,
     failedPages,
+    failureStamp: failedPages.reduce((sum, page) => sum + (byPage.get(page)?.errorUpdatedAt ?? 0), 0),
     isFetching: results.some((r) => r?.isFetching),
     retryFailed: () => failedPages.forEach((page) => void byPage.get(page)?.refetch()),
     rowAt: (index) => {
       const page = Math.floor(index / PAGE_SIZE);
       const result = byPage.get(page);
-      const ticket = result?.data?.items[index - page * PAGE_SIZE];
-      if (ticket) return { kind: 'loaded', ticket };
-      if (result?.isError && !result.isFetching) return { kind: 'failed', page };
-      return { kind: 'loading' };
+      if (hasFailed(result)) return { kind: 'failed', page };
+      const ticket = isUsable(result) ? result?.data?.items[index - page * PAGE_SIZE] : undefined;
+      return ticket ? { kind: 'loaded', ticket } : { kind: 'loading' };
     },
   };
 }
