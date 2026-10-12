@@ -144,11 +144,11 @@
 
 .headRow {
   height: 40px;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--weight-bold);
   color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  /* No text-transform: uppercase leaks into the accessible name in Chromium, and some screen readers then spell
+     the header out letter by letter. */
 }
 
 .bodyRow {
@@ -227,8 +227,6 @@
   border-radius: var(--radius-sm);
   background: none;
   font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
   color: inherit;
   cursor: pointer;
 }
