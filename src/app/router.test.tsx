@@ -1,6 +1,11 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createApiServer } from '../../tests/msw/server';
 import { renderApp } from '../../tests/render';
+
+const server = createApiServer();
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+afterAll(() => server.close());
 
 describe('app shell and routing', () => {
   it('redirects / to /tickets, keeping the query string', async () => {

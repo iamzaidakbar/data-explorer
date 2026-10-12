@@ -17,3 +17,25 @@ if (typeof HTMLDialogElement !== 'undefined' && !HTMLDialogElement.prototype.sho
     this.dispatchEvent(new Event('close'));
   };
 }
+
+// jsdom has no layout. The virtualizer measures its scroll container (offsetHeight/offsetWidth), clamps scrolling
+// to scrollHeight - clientHeight, and scrolls with scrollTo(). Give every element a 1024×600 box whose content
+// height is its first child's inline height (the virtual list's spacer), and make scrollTo update scrollTop.
+Object.defineProperties(HTMLElement.prototype, {
+  offsetHeight: { configurable: true, get: () => 600 },
+  offsetWidth: { configurable: true, get: () => 1024 },
+  clientHeight: { configurable: true, get: () => 600 },
+  scrollHeight: {
+    configurable: true,
+    get(this: HTMLElement) {
+      const content = Number.parseFloat((this.firstElementChild as HTMLElement | null)?.style.height ?? '');
+      return Number.isFinite(content) ? Math.max(content, 600) : 600;
+    },
+  },
+});
+Element.prototype.scrollTo = function scrollTo(this: Element, arg?: ScrollToOptions | number, y?: number) {
+  const top = typeof arg === 'object' ? arg.top : y;
+  if (top === undefined) return;
+  Object.defineProperty(this, 'scrollTop', { configurable: true, writable: true, value: top });
+  this.dispatchEvent(new Event('scroll'));
+};

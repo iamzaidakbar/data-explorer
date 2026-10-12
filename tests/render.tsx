@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { createMemoryRouter } from 'react-router';
+import { RouterProvider } from 'react-router/dom';
 import { AnnouncerProvider } from '../src/lib/announcer';
 import { routes } from '../src/app/router';
 
