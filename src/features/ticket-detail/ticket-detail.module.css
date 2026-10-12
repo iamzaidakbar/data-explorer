@@ -1,0 +1,47 @@
+.fields {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.fields dt {
+  color: var(--color-text-muted);
+}
+
+.fields dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.section {
+  margin-top: var(--space-6);
+}
+
+.sectionTitle {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+}
+
+.description {
+  line-height: 1.6;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
