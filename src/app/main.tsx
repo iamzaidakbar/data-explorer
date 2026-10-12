@@ -1,7 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { createBrowserRouter, RouterProvider } from 'react-router';
+import { createBrowserRouter } from 'react-router';
+// The react-dom flavour wires up flushSync, used for discrete URL updates (see useExplorerParams).
+import { RouterProvider } from 'react-router/dom';
 import { AnnouncerProvider } from '../lib/announcer';
 import { createQueryClient } from './queryClient';
 import { routes } from './router';

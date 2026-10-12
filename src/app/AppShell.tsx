@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { Link, Outlet } from 'react-router';
+import { ChaosControl } from './ChaosControl';
 import styles from './AppShell.module.css';
 
 export const MAIN_ID = 'main-content';
@@ -26,6 +27,7 @@ export function AppShell() {
           </span>
           Ticket Explorer
         </Link>
+        <ChaosControl className={styles.chaos} />
       </header>
       <main id={MAIN_ID} ref={mainRef} tabIndex={-1} className={styles.main}>
         <Outlet />
