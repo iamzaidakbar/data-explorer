@@ -23,6 +23,8 @@ describe('API handlers', () => {
     const body = ApiError.parse(await res.json());
     expect(body.code).toBe('invalid_query');
     expect(Object.keys(body.fieldErrors ?? {}).sort()).toEqual(['pageSize', 'status']);
+    expect(body.fieldErrors?.status?.[0]).toMatch(/expected one of/i);
+    expect(body.fieldErrors?.pageSize?.[0]).toMatch(/100/);
   });
 
   it('injects a 503 failure when the failure roll hits', async () => {

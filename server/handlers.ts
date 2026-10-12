@@ -1,7 +1,11 @@
 import { getDataset } from './dataset.js';
 import { queryTickets } from './query-engine.js';
 import { CHAOS_HEADER, decideChaos, resolveChaosMode, sleep } from './chaos.js';
+import { config, locales } from 'zod/mini';
 import { ticketQueryFromSearchParams, type ApiError, type TicketPage } from '../src/shared/contract.js';
+
+// zod/mini ships without message text to keep client bundles small; the server can afford readable 400s.
+config(locales.en());
 
 /** Everything non-deterministic is injectable so tests can control time, randomness and chaos. */
 export interface HandlerDeps {

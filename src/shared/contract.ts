@@ -3,8 +3,11 @@
  * schemas, so a contract change is a compile error on both sides rather than a runtime surprise.
  *
  * Imports in src/shared, server/ and api/ use explicit `.js` extensions because Vercel runs api/ as native ESM.
+ *
+ * Uses `zod/mini` (functional API, tree-shakable): the client ships these schemas to validate every response, and
+ * the classic API cost ~25 kB gzipped of initial JS (ADR-0008).
  */
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 export const STATUSES = ['open', 'pending', 'on_hold', 'solved', 'closed'] as const;
 export const PRIORITIES = ['low', 'normal', 'high', 'urgent'] as const;
@@ -18,6 +21,9 @@ export const SortField = z.enum(SORT_FIELDS);
 export const SortDir = z.enum(['asc', 'desc']);
 export const Sort = z.object({ field: SortField, dir: SortDir });
 
+const isoDate = z.iso.date();
+const nonNegativeInt = z.int().check(z.minimum(0));
+
 /** Filter value matching tickets whose `assignee` is null. */
 export const UNASSIGNED = 'unassigned';
 export const DEFAULT_SORT: Sort = { field: 'createdAt', dir: 'desc' };
@@ -27,21 +33,26 @@ export const MAX_QUERY_LENGTH = 100;
 
 export const TicketQuery = z
   .object({
-    q: z.string().trim().max(MAX_QUERY_LENGTH).default(''),
-    status: z.array(Status).default([]),
-    priority: z.array(Priority).default([]),
-    channel: z.array(Channel).default([]),
-    assignee: z.array(z.string().min(1).max(40)).max(25).default([]),
-    from: z.iso.date().optional(),
-    to: z.iso.date().optional(),
-    sort: Sort.default(DEFAULT_SORT),
-    page: z.number().int().min(0).default(0),
-    pageSize: z.number().int().min(10).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
+    q: z._default(z.string().check(z.trim(), z.maxLength(MAX_QUERY_LENGTH)), ''),
+    status: z._default(z.array(Status), []),
+    priority: z._default(z.array(Priority), []),
+    channel: z._default(z.array(Channel), []),
+    assignee: z._default(
+      z.array(z.string().check(z.minLength(1), z.maxLength(40))).check(z.maxLength(25)),
+      [],
+    ),
+    from: z.optional(isoDate),
+    to: z.optional(isoDate),
+    sort: z._default(Sort, DEFAULT_SORT),
+    page: z._default(nonNegativeInt, 0),
+    pageSize: z._default(z.int().check(z.minimum(10), z.maximum(MAX_PAGE_SIZE)), DEFAULT_PAGE_SIZE),
   })
-  .refine((v) => !v.from || !v.to || v.from <= v.to, {
-    path: ['to'],
-    message: '"to" must not be before "from"',
-  });
+  .check(
+    z.refine((v) => !v.from || !v.to || v.from <= v.to, {
+      path: ['to'],
+      message: '"to" must not be before "from"',
+    }),
+  );
 
 export const Ticket = z.object({
   id: z.string(),
@@ -51,19 +62,19 @@ export const Ticket = z.object({
   status: Status,
   priority: Priority,
   channel: Channel,
-  assignee: z.string().nullable(),
+  assignee: z.nullable(z.string()),
   tags: z.array(z.string()),
   createdAt: z.string(),
   updatedAt: z.string(),
-  messageCount: z.number().int(),
+  messageCount: z.int(),
   slaBreached: z.boolean(),
 });
 
 export const TicketPage = z.object({
   items: z.array(Ticket),
-  total: z.number().int().min(0),
-  page: z.number().int().min(0),
-  pageSize: z.number().int().min(1),
+  total: nonNegativeInt,
+  page: nonNegativeInt,
+  pageSize: z.int().check(z.minimum(1)),
   requestId: z.string(),
 });
 
@@ -71,7 +82,7 @@ export const ApiError = z.object({
   code: z.string(),
   message: z.string(),
   requestId: z.string(),
-  fieldErrors: z.record(z.string(), z.array(z.string())).optional(),
+  fieldErrors: z.optional(z.record(z.string(), z.array(z.string()))),
 });
 
 export type Status = z.infer<typeof Status>;
