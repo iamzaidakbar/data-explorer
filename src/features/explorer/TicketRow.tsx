@@ -9,12 +9,13 @@ import {
 } from '../../lib/ticket-labels';
 import type { Ticket } from '../../shared/contract';
 import { Badge, Skeleton, VisuallyHidden } from '../../ui';
-import { COLUMNS, ROW_HEIGHT } from './columns';
+import { COLUMNS } from './columns';
 import styles from './explorer.module.css';
 
 export interface TicketRowProps {
   index: number;
   start: number;
+  height: number;
   status: 'loaded' | 'loading' | 'failed';
   /** Stable reference from the query cache, so unchanged rows skip re-rendering. */
   ticket: Ticket | undefined;
@@ -28,6 +29,7 @@ const col = (id: string) => `${styles.cell} ${styles[`col-${id}`] ?? ''}`;
 export const TicketRow = memo(function TicketRow({
   index,
   start,
+  height,
   status,
   ticket,
   tabbable,
@@ -38,7 +40,7 @@ export const TicketRow = memo(function TicketRow({
     'aria-rowindex': index + 2, // +1 for 1-based, +1 for the header row
     'data-index': index,
     onFocus: () => onFocusRow(index),
-    style: { height: ROW_HEIGHT, transform: `translateY(${start}px)` },
+    style: { height, transform: `translateY(${start}px)` },
   } as const;
 
   if (status !== 'loaded' || !ticket) {
@@ -49,7 +51,12 @@ export const TicketRow = memo(function TicketRow({
         {...common}
         className={`${styles.row} ${styles.bodyRow} ${styles.placeholderRow}`}
       >
-        <div role="gridcell" aria-colspan={COLUMNS.length} className={`${styles.cell} ${styles.spanAll}`}>
+        <div
+          role="gridcell"
+          aria-colindex={1}
+          aria-colspan={COLUMNS.length}
+          className={`${styles.cell} ${styles.spanAll}`}
+        >
           {status === 'failed' ? (
             <span className={styles.muted}>Row {index + 1} couldn’t be loaded</span>
           ) : (
@@ -80,26 +87,26 @@ export const TicketRow = memo(function TicketRow({
         }
       }}
     >
-      <div role="gridcell" className={`${col('subject')} ${styles.subject}`}>
+      <div role="gridcell" aria-colindex={1} className={`${col('subject')} ${styles.subject}`}>
         <span className={styles.subjectText}>{ticket.subject}</span>
         <span className={styles.meta}>
           {meta}
           {ticket.slaBreached && <span className={styles.sla}> · SLA breached</span>}
         </span>
       </div>
-      <div role="gridcell" className={col('status')}>
+      <div role="gridcell" aria-colindex={2} className={col('status')}>
         <Badge tone={STATUS_TONE[ticket.status]}>{STATUS_LABEL[ticket.status]}</Badge>
       </div>
-      <div role="gridcell" className={col('priority')}>
+      <div role="gridcell" aria-colindex={3} className={col('priority')}>
         <Badge tone={PRIORITY_TONE[ticket.priority]}>{PRIORITY_LABEL[ticket.priority]}</Badge>
       </div>
-      <div role="gridcell" className={col('assignee')}>
+      <div role="gridcell" aria-colindex={4} className={col('assignee')}>
         {ticket.assignee ?? <span className={styles.muted}>Unassigned</span>}
       </div>
-      <div role="gridcell" className={col('createdAt')}>
+      <div role="gridcell" aria-colindex={5} className={col('createdAt')}>
         {formatDate(ticket.createdAt)}
       </div>
-      <div role="gridcell" className={col('updatedAt')}>
+      <div role="gridcell" aria-colindex={6} className={col('updatedAt')}>
         {formatDate(ticket.updatedAt)}
       </div>
     </div>

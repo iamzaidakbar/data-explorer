@@ -1,11 +1,13 @@
-import { useCallback, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { Outlet, useLocation, useNavigationType } from 'react-router';
 import { formatCount } from '../../lib/format';
 import { countActiveFilters, resultSetKey } from '../../lib/url-state';
-import { Button } from '../../ui';
+import { encodeSort, Sort } from '../../shared/contract';
+import { Button, SelectField } from '../../ui';
 import { ActiveFilters } from './ActiveFilters';
+import { SORT_OPTIONS } from './columns';
 import { FiltersPanel } from './FiltersPanel';
-import { EmptyState, ErrorState, LoadingState, PartialFailureBanner } from './ListStates';
+import { EmptyState, ErrorState, PartialFailureBanner } from './ListStates';
 import { Pager } from './Pager';
 import { SearchBox } from './SearchBox';
 import { TicketGrid } from './TicketGrid';
@@ -22,6 +24,15 @@ export function ExplorerPage() {
   const { state } = explorer;
   const [filtersOpen, setFiltersOpen] = useState(false);
   const activeFilters = countActiveFilters(state);
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  // Counts Back/Forward moves (a key comparison alone misses returning to the first entry). Unchanged by our own
+  // push/replace writes. Derived during render from the previous location, per React's guidance.
+  const [history, setHistory] = useState({ key: location.key, pops: 0 });
+  if (location.key !== history.key) {
+    setHistory({ key: location.key, pops: history.pops + (navigationType === 'POP' ? 1 : 0) });
+  }
+  const historyKey = String(history.pops);
 
   return (
     <div className={styles.page}>
@@ -29,7 +40,7 @@ export function ExplorerPage() {
         <h1 id={HEADING_ID} className={styles.title}>
           Support tickets
         </h1>
-        <SearchBox value={state.q} onCommit={explorer.setSearch} />
+        <SearchBox value={state.q} onCommit={explorer.setSearch} historyKey={historyKey} />
         <Button
           className={styles.filtersToggle}
           aria-expanded={filtersOpen}
@@ -62,13 +73,20 @@ function Results({ explorer }: { explorer: ExplorerParams }) {
   const list = useTicketPages(state, window);
   useListAnnouncements(setKey, list);
 
-  const navigate = useNavigate();
-  const { search } = useLocation();
-  const openTicket = useCallback(
-    (ticketId: string) =>
-      navigate({ pathname: `/tickets/${ticketId}`, search }, { state: { fromList: true } }),
-    [navigate, search],
-  );
+  // Controls that disappear while focused (Retry banners, the last filter chip) hand focus to the result count.
+  const summaryRef = useRef<HTMLParagraphElement>(null);
+  const focusSummaryWhenSettled = useRef(false);
+  const bannerShown = list.kind === 'error' || (list.kind === 'ready' && list.failedPages.length > 0);
+  useEffect(() => {
+    if (focusSummaryWhenSettled.current && !bannerShown && list.kind !== 'loading') {
+      focusSummaryWhenSettled.current = false;
+      summaryRef.current?.focus();
+    }
+  }, [bannerShown, list.kind]);
+  const retry = (run: () => void) => () => {
+    focusSummaryWhenSettled.current = true;
+    run();
+  };
 
   const visible = window?.setKey === setKey ? window : { start: state.row, end: state.row };
   const hasQuery = state.q !== '' || countActiveFilters(state) > 0;
@@ -76,43 +94,65 @@ function Results({ explorer }: { explorer: ExplorerParams }) {
   return (
     <section className={styles.results} aria-labelledby={HEADING_ID}>
       <div className={styles.summary}>
-        <p className={styles.count}>
+        <p ref={summaryRef} tabIndex={-1} className={styles.count}>
           {list.kind === 'ready' && `${formatCount(list.total)} ${list.total === 1 ? 'ticket' : 'tickets'}`}
           {list.kind === 'empty' && '0 tickets'}
           {list.kind === 'loading' && <span className={styles.muted}>Loading…</span>}
         </p>
-        <ActiveFilters filters={state} onChange={explorer.setFilters} />
+        <ActiveFilters
+          filters={state}
+          onChange={explorer.setFilters}
+          onAllRemoved={() => summaryRef.current?.focus()}
+        />
+        {/* Narrow layouts hide some sortable columns; this keeps every sort reachable (WCAG 1.4.10). */}
+        <SelectField
+          className={styles.sortSelect}
+          label="Sort by"
+          options={SORT_OPTIONS}
+          value={encodeSort(state.sort)}
+          onChange={(e) => {
+            const raw = e.target.value;
+            const parsed = Sort.safeParse({
+              field: raw.replace(/^-/, ''),
+              dir: raw.startsWith('-') ? 'desc' : 'asc',
+            });
+            if (parsed.success) explorer.setSort(parsed.data);
+          }}
+        />
       </div>
 
-      {list.kind === 'loading' && <LoadingState query={state.q} />}
       {list.kind === 'error' && (
-        <ErrorState error={list.error} retrying={list.retrying} onRetry={list.retry} />
+        <ErrorState error={list.error} retrying={list.retrying} onRetry={retry(list.retry)} />
       )}
       {list.kind === 'empty' && <EmptyState canClear={hasQuery} onClear={explorer.clearAll} />}
+      {list.kind === 'ready' && list.failedPages.length > 0 && (
+        <PartialFailureBanner
+          pages={list.failedPages}
+          pageSize={PAGE_SIZE}
+          onRetry={retry(list.retryFailed)}
+        />
+      )}
+      {(list.kind === 'loading' || list.kind === 'ready') && (
+        <TicketGrid
+          list={list}
+          row={state.row}
+          sort={state.sort}
+          query={state.q}
+          labelledBy={HEADING_ID}
+          onSort={explorer.setSort}
+          onWindowChange={setWindow}
+          onAnchorRowChange={explorer.setAnchorRow}
+          onOpen={explorer.openTicket}
+        />
+      )}
       {list.kind === 'ready' && (
-        <>
-          {list.failedPages.length > 0 && (
-            <PartialFailureBanner pages={list.failedPages} pageSize={PAGE_SIZE} onRetry={list.retryFailed} />
-          )}
-          <TicketGrid
-            key={setKey}
-            list={list}
-            row={state.row}
-            sort={state.sort}
-            labelledBy={HEADING_ID}
-            onSort={explorer.setSort}
-            onWindowChange={setWindow}
-            onAnchorRowChange={explorer.setAnchorRow}
-            onOpen={openTicket}
-          />
-          <Pager
-            total={list.total}
-            pageSize={PAGE_SIZE}
-            row={state.row}
-            visible={visible}
-            onJump={explorer.jumpToRow}
-          />
-        </>
+        <Pager
+          total={list.total}
+          pageSize={PAGE_SIZE}
+          row={state.row}
+          visible={visible}
+          onJump={explorer.jumpToRow}
+        />
       )}
     </section>
   );

@@ -4,9 +4,9 @@ import { plural } from '../../lib/format';
 import type { TicketListState } from './useTicketPages';
 
 /**
- * Screen-reader announcements for list outcomes: one per settled result set (count, empty or error) and one per
- * new partial failure. Keyed by result set, so re-renders and scrolling never repeat them, and an intermediate
- * search that was superseded is never announced.
+ * Screen-reader announcements for list outcomes: one per settled result set (count, empty or error), one per new
+ * failure (including a retry that fails again), and one when failed rows are restored. Keyed by result set and
+ * failure time, so re-renders and scrolling never repeat them and a superseded search is never announced.
  */
 export function useListAnnouncements(setKey: string, list: TicketListState) {
   const announce = useAnnounce();
@@ -20,7 +20,7 @@ export function useListAnnouncements(setKey: string, list: TicketListState) {
         ? [`${setKey}|empty`, 'No tickets match your search and filters.', 'polite' as const]
         : list.kind === 'error'
           ? [
-              `${setKey}|error`,
+              `${setKey}|error|${list.failedAt}`,
               `Couldn’t load tickets. ${list.error.message} A Retry button is available.`,
               'assertive' as const,
             ]
@@ -33,10 +33,17 @@ export function useListAnnouncements(setKey: string, list: TicketListState) {
   }, [announce, outcomeId, message, politeness]);
 
   const failureId =
-    list.kind === 'ready' && list.failedPages.length > 0 ? `${setKey}|${list.failedPages.join(',')}` : '';
+    list.kind === 'ready' && list.failedPages.length > 0
+      ? `${setKey}|${list.failureStamp}`
+      : `${setKey}|none`;
   useEffect(() => {
-    if (!failureId || failureId === lastFailure.current) return;
+    const previous = lastFailure.current;
     lastFailure.current = failureId;
-    announce('Some rows couldn’t be loaded. A Retry button is available above the table.', 'assertive');
-  }, [announce, failureId]);
+    if (failureId === previous) return;
+    if (!failureId.endsWith('|none')) {
+      announce('Some rows couldn’t be loaded. A Retry button is available above the table.', 'assertive');
+    } else if (previous.startsWith(`${setKey}|`) && !previous.endsWith('|none')) {
+      announce('The missing rows have loaded.', 'polite');
+    }
+  }, [announce, failureId, setKey]);
 }

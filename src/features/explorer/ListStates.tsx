@@ -1,33 +1,9 @@
-import { useEffect, useState } from 'react';
 import { ApiRequestError } from '../../lib/api-client';
-import { Banner, Button, Skeleton } from '../../ui';
+import { Banner, Button } from '../../ui';
 import styles from './explorer.module.css';
 
 /** After this long, the loading state explains itself instead of looking stuck. */
 export const SLOW_HINT_MS = 1500;
-
-export function LoadingState({ query }: { query: string }) {
-  const [slow, setSlow] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setSlow(true), SLOW_HINT_MS);
-    return () => clearTimeout(t);
-  }, []);
-  return (
-    <div className={styles.stateBox} aria-busy="true">
-      <p className={styles.stateTitle}>{query ? `Searching for “${query}”…` : 'Loading tickets…'}</p>
-      {slow && <p className={styles.muted}>The server is responding slowly. Still waiting for results…</p>}
-      <div className={styles.skeletonRows} aria-hidden="true">
-        {Array.from({ length: 8 }, (_, i) => (
-          <div key={i} className={styles.skeletonRow}>
-            <Skeleton width={`${55 + ((i * 17) % 40)}%`} />
-            <Skeleton />
-            <Skeleton />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export function ErrorState({
   error,
@@ -45,7 +21,8 @@ export function ErrorState({
       tone="danger"
       title="Couldn’t load tickets"
       actions={
-        <Button variant="primary" onClick={onRetry} disabled={retrying}>
+        // aria-disabled (not disabled) keeps keyboard focus on the button while the retry is in flight.
+        <Button variant="primary" onClick={() => !retrying && onRetry()} aria-disabled={retrying}>
           {retrying ? 'Retrying…' : 'Retry'}
         </Button>
       }

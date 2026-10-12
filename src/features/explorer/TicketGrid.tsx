@@ -1,7 +1,9 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Sort } from '../../shared/contract';
-import { COLUMNS, ROW_HEIGHT, type Column } from './columns';
+import { Skeleton } from '../../ui';
+import { COLUMNS, getRowHeight, type Column } from './columns';
+import { SLOW_HINT_MS } from './ListStates';
 import { TicketRow } from './TicketRow';
 import type { RowWindow, TicketListState } from './useTicketPages';
 import styles from './explorer.module.css';
@@ -13,10 +15,12 @@ const OVERSCAN = 8;
 type ReadyList = Extract<TicketListState, { kind: 'ready' }>;
 
 export interface TicketGridProps {
-  list: ReadyList;
+  /** Loading renders the header with a loading body, so header controls (sort) keep focus across result sets. */
+  list: ReadyList | { kind: 'loading' };
   /** Anchor row from the URL. Changes not caused by our own scrolling (pager, Back/Forward) scroll the grid. */
   row: number;
   sort: Sort;
+  query: string;
   labelledBy: string;
   onSort: (sort: Sort) => void;
   onWindowChange: (window: RowWindow) => void;
@@ -31,25 +35,105 @@ function nextSort(column: Column, current: Sort): Sort | null {
   return { field: column.sortField, dir: column.defaultDir ?? 'asc' };
 }
 
+const colClass = (id: string) => `${styles.cell} ${styles[`col-${id}`] ?? ''}`;
+
 /**
- * Virtualized ARIA grid (ADR-0004, ADR-0007). Mounted once per result set (keyed by the parent), so a new search
- * always starts from a clean scroll position and virtualizer state. Only ~20–40 rows exist in the DOM.
- *
- * Focus model: one tab stop (roving tabindex on rows); arrows, PageUp/PageDown and Home/End move between rows,
- * Enter opens the ticket.
+ * ARIA grid (ADR-0004, ADR-0007). The shell — grid element and header row — stays mounted while results load and
+ * across result sets, so a focused sort button keeps focus. Only the virtualized body is remounted per result set
+ * (`key`), which gives every new search a clean scroll position and virtualizer.
  */
-export function TicketGrid({
-  list,
-  row,
-  sort,
-  labelledBy,
-  onSort,
-  onWindowChange,
-  onAnchorRowChange,
-  onOpen,
-}: TicketGridProps) {
+export function TicketGrid({ list, row, sort, query, labelledBy, onSort, ...bodyProps }: TicketGridProps) {
+  return (
+    <div
+      role="grid"
+      aria-labelledby={labelledBy}
+      aria-rowcount={list.kind === 'ready' ? list.total + 1 : -1}
+      aria-colcount={COLUMNS.length}
+      aria-busy={list.kind === 'loading' || undefined}
+      className={styles.grid}
+    >
+      <div role="rowgroup" className={styles.head}>
+        <div role="row" aria-rowindex={1} className={`${styles.row} ${styles.headRow}`}>
+          {COLUMNS.map((column, i) => {
+            const active = sort.field === column.sortField;
+            const next = nextSort(column, sort);
+            return (
+              <div
+                key={column.id}
+                role="columnheader"
+                aria-colindex={i + 1}
+                aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}
+                className={colClass(column.id)}
+              >
+                {next ? (
+                  <button
+                    type="button"
+                    className={`${styles.sortButton} ${active ? styles.sortActive : ''}`}
+                    onClick={() => onSort(next)}
+                  >
+                    {column.label}
+                    <span aria-hidden="true" className={styles.sortIcon}>
+                      {active ? (sort.dir === 'asc' ? '▲' : '▼') : ''}
+                    </span>
+                  </button>
+                ) : (
+                  column.label
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {list.kind === 'ready' ? (
+        <GridBody key={list.setKey} list={list} row={row} {...bodyProps} />
+      ) : (
+        <LoadingBody query={query} />
+      )}
+    </div>
+  );
+}
+
+function LoadingBody({ query }: { query: string }) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), SLOW_HINT_MS);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div role="rowgroup" className={styles.body}>
+      <div role="row" className={`${styles.row} ${styles.loadingRow}`}>
+        <div role="gridcell" aria-colindex={1} aria-colspan={COLUMNS.length} className={styles.loadingCell}>
+          <p className={styles.stateTitle}>{query ? `Searching for “${query}”…` : 'Loading tickets…'}</p>
+          {slow && (
+            <p className={styles.muted}>The server is responding slowly. Still waiting for results…</p>
+          )}
+          <div className={styles.skeletonRows} aria-hidden="true">
+            {Array.from({ length: 8 }, (_, i) => (
+              <div key={i} className={styles.skeletonRow}>
+                <Skeleton width={`${55 + ((i * 17) % 40)}%`} />
+                <Skeleton />
+                <Skeleton />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type GridBodyProps = Pick<TicketGridProps, 'row' | 'onWindowChange' | 'onAnchorRowChange' | 'onOpen'> & {
+  list: ReadyList;
+};
+
+/**
+ * Virtualized rows (~20–40 in the DOM). Focus model: one tab stop (roving tabindex on rows); arrows,
+ * PageUp/PageDown and Home/End move between rows, Enter opens the ticket.
+ */
+function GridBody({ list, row, onWindowChange, onAnchorRowChange, onOpen }: GridBodyProps) {
   const { total, setKey } = list;
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [rowHeight] = useState(getRowHeight);
   const [initialRow] = useState(() => Math.min(row, total - 1));
   const [activeIndex, setActiveIndex] = useState(initialRow);
   const reportedRow = useRef(row);
@@ -68,22 +152,26 @@ export function TicketGrid({
   const virtualizer = useVirtualizer({
     count: total,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: () => rowHeight,
     overscan: OVERSCAN,
-    initialOffset: initialRow * ROW_HEIGHT,
+    initialOffset: initialRow * rowHeight,
     onChange: (instance) => {
       // Visible rows only (no overscan): drives page fetching (which adds its own prefetch margin) and "Rows X–Y".
       const range = instance.range;
       if (range) callbacks.current.onWindowChange({ setKey, start: range.startIndex, end: range.endIndex });
       clearTimeout(anchorTimer.current);
-      anchorTimer.current = setTimeout(() => {
-        const top = instance.range?.startIndex ?? 0;
-        if (top === reportedRow.current) return;
-        reportedRow.current = top;
-        callbacks.current.onAnchorRowChange(top);
-      }, ANCHOR_DEBOUNCE_MS);
+      anchorTimer.current = setTimeout(writeAnchor, ANCHOR_DEBOUNCE_MS);
     },
   });
+
+  function writeAnchor() {
+    clearTimeout(anchorTimer.current);
+    // Read the real scroll position: right after mount the virtualizer's range can lag it (by the overscan).
+    const top = Math.floor((scrollRef.current?.scrollTop ?? 0) / rowHeight);
+    if (top === reportedRow.current) return;
+    reportedRow.current = top;
+    callbacks.current.onAnchorRowChange(top);
+  }
 
   useEffect(() => () => clearTimeout(anchorTimer.current), []);
 
@@ -107,7 +195,7 @@ export function TicketGrid({
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const pageRows = Math.max(
       1,
-      Math.floor((scrollRef.current?.clientHeight ?? ROW_HEIGHT * 10) / ROW_HEIGHT) - 1,
+      Math.floor((scrollRef.current?.clientHeight ?? rowHeight * 10) / rowHeight) - 1,
     );
     const moves: Record<string, number> = {
       ArrowDown: activeIndex + 1,
@@ -127,6 +215,17 @@ export function TicketGrid({
   };
 
   const onFocusRow = useCallback((index: number) => setActiveIndex(index), []);
+  // Record the current scroll position on the list's own history entry *before* opening a ticket, so a pending
+  // debounced write can't land on the ticket's entry instead.
+  const openRow = useCallback(
+    (ticketId: string) => {
+      if (anchorTimer.current !== undefined) writeAnchor();
+      onOpen(ticketId);
+    },
+    // writeAnchor only touches refs and the stable virtualizer instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onOpen],
+  );
 
   const items = virtualizer.getVirtualItems();
   // Exactly one row is tabbable. If the active row has scrolled out of the DOM, the first *visible* row stands in
@@ -136,65 +235,26 @@ export function TicketGrid({
     : (virtualizer.range?.startIndex ?? items[0]?.index);
 
   return (
-    <div
-      role="grid"
-      aria-labelledby={labelledBy}
-      aria-rowcount={total + 1}
-      aria-colcount={COLUMNS.length}
-      aria-busy={list.isFetching || undefined}
-      className={styles.grid}
-    >
-      <div role="rowgroup" className={styles.head}>
-        <div role="row" aria-rowindex={1} className={`${styles.row} ${styles.headRow}`}>
-          {COLUMNS.map((column) => {
-            const active = sort.field === column.sortField;
-            const next = nextSort(column, sort);
-            return (
-              <div
-                key={column.id}
-                role="columnheader"
-                aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}
-                className={`${styles.cell} ${styles[`col-${column.id}`] ?? ''}`}
-              >
-                {next ? (
-                  <button
-                    type="button"
-                    className={`${styles.sortButton} ${active ? styles.sortActive : ''}`}
-                    onClick={() => onSort(next)}
-                  >
-                    {column.label}
-                    <span aria-hidden="true" className={styles.sortIcon}>
-                      {active ? (sort.dir === 'asc' ? '▲' : '▼') : ''}
-                    </span>
-                  </button>
-                ) : (
-                  column.label
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      {/* Arrow-key handling for the whole grid body; rows themselves handle Enter. */}
-      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
-      <div role="rowgroup" ref={scrollRef} className={styles.body} onKeyDown={onKeyDown}>
-        <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-          {items.map((item) => {
-            const state = list.rowAt(item.index);
-            return (
-              <TicketRow
-                key={item.key}
-                index={item.index}
-                start={item.start}
-                status={state.kind}
-                ticket={state.kind === 'loaded' ? state.ticket : undefined}
-                tabbable={item.index === tabbableIndex}
-                onOpen={onOpen}
-                onFocusRow={onFocusRow}
-              />
-            );
-          })}
-        </div>
+    // Arrow-key handling for the whole grid body; rows themselves handle Enter.
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+    <div role="rowgroup" ref={scrollRef} className={styles.body} onKeyDown={onKeyDown}>
+      <div role="presentation" style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+        {items.map((item) => {
+          const state = list.rowAt(item.index);
+          return (
+            <TicketRow
+              key={item.key}
+              index={item.index}
+              start={item.start}
+              height={rowHeight}
+              status={state.kind}
+              ticket={state.kind === 'loaded' ? state.ticket : undefined}
+              tabbable={item.index === tabbableIndex}
+              onOpen={openRow}
+              onFocusRow={onFocusRow}
+            />
+          );
+        })}
       </div>
     </div>
   );

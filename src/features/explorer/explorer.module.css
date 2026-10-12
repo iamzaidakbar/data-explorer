@@ -368,3 +368,40 @@
     flex: 1 1 100%;
   }
 }
+
+/* Review fixes */
+.sortButton:focus-visible {
+  /* .cell clips overflow; an inset ring stays fully visible. */
+  outline-offset: -2px;
+}
+
+.count:focus {
+  outline: none;
+}
+
+.count:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.sortSelect {
+  display: none;
+  margin-left: auto;
+}
+
+.loadingRow {
+  display: block;
+  padding: var(--space-5);
+}
+
+.loadingCell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+@media (max-width: 700px) {
+  .sortSelect {
+    display: flex;
+  }
+}

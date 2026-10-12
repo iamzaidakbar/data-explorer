@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { CHANNEL_LABEL, PRIORITY_LABEL, STATUS_LABEL } from '../../lib/ticket-labels';
 import type { ExplorerFilters } from '../../lib/url-state';
 import { UNASSIGNED } from '../../shared/contract';
@@ -37,21 +38,46 @@ function chipsFor(f: ExplorerFilters): Chip[] {
   ];
 }
 
-/** Removable summary of active filters, so keyboard users can undo one without opening the panel. */
+/**
+ * Removable summary of active filters, so keyboard users can undo one without opening the panel. Removing a chip
+ * moves focus to the chip that took its place (or the previous one); removing the last calls `onAllRemoved`.
+ */
 export function ActiveFilters({
   filters,
   onChange,
+  onAllRemoved,
 }: {
   filters: ExplorerFilters;
   onChange: (patch: Partial<ExplorerFilters>) => void;
+  onAllRemoved: () => void;
 }) {
   const chips = chipsFor(filters);
+  const listRef = useRef<HTMLUListElement>(null);
+  const focusAfterRemove = useRef<number | null>(null);
+
+  useEffect(() => {
+    const index = focusAfterRemove.current;
+    if (index === null) return;
+    focusAfterRemove.current = null;
+    const buttons = listRef.current?.querySelectorAll('button');
+    const target = buttons?.[Math.min(index, buttons.length - 1)];
+    if (target) target.focus();
+    else onAllRemoved();
+  });
+
   if (chips.length === 0) return null;
   return (
-    <ul className={styles.chips} aria-label="Active filters">
-      {chips.map((chip) => (
+    <ul ref={listRef} className={styles.chips} aria-label="Active filters">
+      {chips.map((chip, i) => (
         <li key={chip.key}>
-          <Button size="sm" aria-label={`Remove filter ${chip.label}`} onClick={() => onChange(chip.remove)}>
+          <Button
+            size="sm"
+            aria-label={`Remove filter ${chip.label}`}
+            onClick={() => {
+              focusAfterRemove.current = i;
+              onChange(chip.remove);
+            }}
+          >
             {chip.label} <span aria-hidden="true">✕</span>
           </Button>
         </li>

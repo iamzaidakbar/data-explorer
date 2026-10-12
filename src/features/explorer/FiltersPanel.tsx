@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { AGENTS } from '../../shared/agents';
 import { CHANNELS, PRIORITIES, STATUSES, UNASSIGNED } from '../../shared/contract';
 import { countActiveFilters, type ExplorerFilters } from '../../lib/url-state';
@@ -25,6 +26,7 @@ export interface FiltersPanelProps {
 
 export function FiltersPanel({ id, open, filters, onChange, onClear }: FiltersPanelProps) {
   const active = countActiveFilters(filters);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const assigneeValue =
     filters.assignee.length === 0 ? '' : filters.assignee.length === 1 ? filters.assignee[0] : MULTIPLE;
   const assigneeOptions =
@@ -39,11 +41,19 @@ export function FiltersPanel({ id, open, filters, onChange, onClear }: FiltersPa
       className={[styles.filters, open && styles.filtersOpen].filter(Boolean).join(' ')}
     >
       <div className={styles.filtersHeader}>
-        <h2 id={`${id}-title`} className={styles.filtersTitle}>
+        <h2 id={`${id}-title`} ref={headingRef} tabIndex={-1} className={styles.filtersTitle}>
           Filters
         </h2>
         {active > 0 && (
-          <Button size="sm" variant="ghost" onClick={onClear}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              onClear();
+              // The button disappears once no filters are active; keep focus in the panel instead of losing it.
+              headingRef.current?.focus();
+            }}
+          >
             Clear filters
           </Button>
         )}
