@@ -35,6 +35,8 @@
 | UI refinement: a text replacement for inline date labels | Silently missed after code moved (indentation changed) | Screenshot still showed stacked labels | Regex-based edit + re-capture |
 | UI refinement: filters sheet focus return | Relied on "previously focused element"; Safari doesn't focus buttons on click | New WebKit E2E test failed | Explicit return-focus target |
 
+| Offline handling | Missing: a paused (offline) query looked like endless loading and claimed the _server_ was slow | Asked to confirm; verified by searching the code and TanStack's onlineManager source | Offline list/row/drawer states, connection banner, ADR-0009, unit + real-browser tests |
+
 ## Reviewer findings and dispositions
 
 _Filled in after the review round (Phase 6/7)._
