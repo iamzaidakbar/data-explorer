@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { useAnnounce } from '../../lib/announcer';
 import { formatCount } from '../../lib/format';
 import { Button, TextField } from '../../ui';
 import styles from './explorer.module.css';
@@ -13,10 +14,23 @@ export interface PagerProps {
   onJump: (row: number) => void;
 }
 
+/** aria-disabled instead of disabled: a button that becomes disabled while focused would drop keyboard focus. */
+function PageButton({ label, off, onGo }: { label: string; off: boolean; onGo: () => void }) {
+  return (
+    <Button size="sm" aria-disabled={off} onClick={() => !off && onGo()}>
+      {label}
+    </Button>
+  );
+}
+
 /** Keyboard-friendly paging over the virtual list: each page jump scrolls to that page's first row. */
 export function Pager({ total, pageSize, row, visible, onJump }: PagerProps) {
+  const announce = useAnnounce();
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const page = Math.min(pageCount - 1, Math.floor(row / pageSize));
+  // When the end of the list is visible we are on the last page, even though the top visible row (the URL anchor)
+  // may belong to an earlier page — the last page is often shorter than the viewport.
+  const atEnd = visible.end >= total - 1;
+  const page = atEnd ? pageCount - 1 : Math.min(pageCount - 1, Math.floor(row / pageSize));
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string>();
   const formId = useId();
@@ -29,21 +43,13 @@ export function Pager({ total, pageSize, row, visible, onJump }: PagerProps) {
         of {formatCount(total)}
       </p>
       <div className={styles.pagerControls}>
-        <Button size="sm" onClick={() => go(0)} disabled={page === 0}>
-          First
-        </Button>
-        <Button size="sm" onClick={() => go(page - 1)} disabled={page === 0}>
-          Previous
-        </Button>
+        <PageButton label="First" off={page === 0} onGo={() => go(0)} />
+        <PageButton label="Previous" off={page === 0} onGo={() => go(page - 1)} />
         <span aria-current="page">
           Page {formatCount(page + 1)} of {formatCount(pageCount)}
         </span>
-        <Button size="sm" onClick={() => go(page + 1)} disabled={page >= pageCount - 1}>
-          Next
-        </Button>
-        <Button size="sm" onClick={() => go(pageCount - 1)} disabled={page >= pageCount - 1}>
-          Last
-        </Button>
+        <PageButton label="Next" off={page >= pageCount - 1} onGo={() => go(page + 1)} />
+        <PageButton label="Last" off={page >= pageCount - 1} onGo={() => go(pageCount - 1)} />
         <form
           id={formId}
           className={styles.pageJump}
@@ -51,7 +57,9 @@ export function Pager({ total, pageSize, row, visible, onJump }: PagerProps) {
             e.preventDefault();
             const n = Number(draft);
             if (!Number.isInteger(n) || n < 1 || n > pageCount) {
-              setError(`Enter a page from 1 to ${formatCount(pageCount)}`);
+              const message = `Enter a page from 1 to ${formatCount(pageCount)}`;
+              setError(message);
+              announce(message, 'assertive');
               return;
             }
             setError(undefined);
@@ -68,7 +76,10 @@ export function Pager({ total, pageSize, row, visible, onJump }: PagerProps) {
             max={pageCount}
             value={draft}
             error={error}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              setError(undefined);
+            }}
           />
           <Button size="sm" type="submit">
             Go
