@@ -7,7 +7,7 @@ Decisions: docs/adr/. Do not restate them here.
 
 ## Commands
 
-- pnpm dev # Vite dev server (+ mock API middleware from Phase 4)
+- pnpm dev # Vite dev server + mock API at /api (same handlers as Vercel)
 - pnpm verify # typecheck + lint + unit + build + size (MUST pass before claiming done)
 - pnpm test -- <path> # targeted unit/component tests
 - pnpm e2e # Playwright (Chromium + WebKit, CHAOS=off), incl. axe checks

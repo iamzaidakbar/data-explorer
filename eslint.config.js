@@ -22,6 +22,18 @@ export default tseslint.config(
     },
   },
   { files: ['src/**/*.tsx'], ...jsxA11y.flatConfigs.strict },
+  // Node types are loaded for server/ and tests; browser code must still not touch Node globals.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        { name: 'process', message: 'Browser code: use import.meta.env instead.' },
+        { name: 'Buffer', message: 'Browser code: Buffer is Node-only.' },
+      ],
+    },
+  },
   // Module boundaries (blueprint §4.1)
   {
     files: ['server/**/*.ts', 'api/**/*.ts'],
