@@ -24,6 +24,14 @@ export interface TicketRowProps {
   onFocusRow: (index: number) => void;
 }
 
+const initials = (name: string) =>
+  name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
 const col = (id: string) => `${styles.cell} ${styles[`col-${id}`] ?? ''}`;
 
 export const TicketRow = memo(function TicketRow({
@@ -58,12 +66,12 @@ export const TicketRow = memo(function TicketRow({
           className={`${styles.cell} ${styles.spanAll}`}
         >
           {status === 'failed' ? (
-            <span className={styles.muted}>Row {index + 1} couldn’t be loaded</span>
+            <span className={styles.failedText}>Row {index + 1} couldn’t be loaded</span>
           ) : (
             <>
               <VisuallyHidden>Loading row {index + 1}</VisuallyHidden>
-              <Skeleton width="45%" />
-              <Skeleton width="15%" />
+              <Skeleton width="40%" />
+              <Skeleton width="12%" />
             </>
           )}
         </div>
@@ -95,18 +103,29 @@ export const TicketRow = memo(function TicketRow({
         </span>
       </div>
       <div role="gridcell" aria-colindex={2} className={col('status')}>
-        <Badge tone={STATUS_TONE[ticket.status]}>{STATUS_LABEL[ticket.status]}</Badge>
+        <Badge tone={STATUS_TONE[ticket.status]} dot>
+          {STATUS_LABEL[ticket.status]}
+        </Badge>
       </div>
       <div role="gridcell" aria-colindex={3} className={col('priority')}>
         <Badge tone={PRIORITY_TONE[ticket.priority]}>{PRIORITY_LABEL[ticket.priority]}</Badge>
       </div>
       <div role="gridcell" aria-colindex={4} className={col('assignee')}>
-        {ticket.assignee ?? <span className={styles.muted}>Unassigned</span>}
+        {ticket.assignee ? (
+          <span className={styles.assignee}>
+            <span className={styles.avatar} aria-hidden="true">
+              {initials(ticket.assignee)}
+            </span>
+            <span className={styles.cell}>{ticket.assignee}</span>
+          </span>
+        ) : (
+          <span className={styles.unassigned}>Unassigned</span>
+        )}
       </div>
-      <div role="gridcell" aria-colindex={5} className={col('createdAt')}>
+      <div role="gridcell" aria-colindex={5} className={`${col('createdAt')} ${styles.date}`}>
         {formatDate(ticket.createdAt)}
       </div>
-      <div role="gridcell" aria-colindex={6} className={col('updatedAt')}>
+      <div role="gridcell" aria-colindex={6} className={`${col('updatedAt')} ${styles.date}`}>
         {formatDate(ticket.updatedAt)}
       </div>
     </div>

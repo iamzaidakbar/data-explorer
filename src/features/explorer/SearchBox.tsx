@@ -57,8 +57,11 @@ export function SearchBox({ value, onCommit, historyKey }: SearchBoxProps) {
       ref={inputRef}
       className={styles.search}
       type="search"
+      // The label stays in the accessibility tree; the icon and placeholder carry it visually.
       label="Search tickets"
-      placeholder="Subject, customer, email or ticket ID"
+      hideLabel
+      icon="search"
+      placeholder="Search by subject, customer, email or ticket ID"
       defaultValue={value}
       maxLength={MAX_QUERY_LENGTH}
       autoComplete="off"

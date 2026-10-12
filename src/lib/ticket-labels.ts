@@ -22,8 +22,8 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
   urgent: 'Urgent',
 };
 export const PRIORITY_TONE: Record<Priority, BadgeTone> = {
-  low: 'neutral',
-  normal: 'neutral',
+  low: 'outline',
+  normal: 'outline',
   high: 'warning',
   urgent: 'danger',
 };

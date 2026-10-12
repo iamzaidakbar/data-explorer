@@ -72,13 +72,15 @@ export function ActiveFilters({
         <li key={chip.key}>
           <Button
             size="sm"
+            className={styles.chip}
+            iconEnd="x"
             aria-label={`Remove filter ${chip.label}`}
             onClick={() => {
               focusAfterRemove.current = i;
               onChange(chip.remove);
             }}
           >
-            {chip.label} <span aria-hidden="true">✕</span>
+            {chip.label}
           </Button>
         </li>
       ))}

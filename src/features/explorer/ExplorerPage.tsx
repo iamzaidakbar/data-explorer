@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigationType } from 'react-router';
 import { formatCount } from '../../lib/format';
 import { countActiveFilters, resultSetKey } from '../../lib/url-state';
 import { encodeSort, Sort } from '../../shared/contract';
-import { Button, SelectField } from '../../ui';
+import { Button, Drawer, SelectField } from '../../ui';
 import { ActiveFilters } from './ActiveFilters';
 import { SORT_OPTIONS } from './columns';
 import { FiltersPanel } from './FiltersPanel';
@@ -23,6 +23,7 @@ export function ExplorerPage() {
   const explorer = useExplorerParams();
   const { state } = explorer;
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const filtersToggleRef = useRef<HTMLButtonElement>(null);
   const activeFilters = countActiveFilters(state);
   const location = useLocation();
   const navigationType = useNavigationType();
@@ -36,37 +37,84 @@ export function ExplorerPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.titleBar}>
-        <h1 id={HEADING_ID} className={styles.title}>
-          Support tickets
-        </h1>
-        <SearchBox value={state.q} onCommit={explorer.setSearch} historyKey={historyKey} />
-        <Button
-          className={styles.filtersToggle}
-          aria-expanded={filtersOpen}
-          aria-controls={FILTERS_ID}
-          onClick={() => setFiltersOpen((open) => !open)}
-        >
-          Filters{activeFilters > 0 ? ` (${activeFilters})` : ''}
-        </Button>
-      </div>
+      <header className={styles.pageHeader}>
+        <div>
+          <h1 id={HEADING_ID} className={styles.title}>
+            Support tickets
+          </h1>
+          <p className={styles.subtitle}>
+            Search, filter and sort every ticket. Your view is saved in the URL.
+          </p>
+        </div>
+      </header>
       <div className={styles.layout}>
         <FiltersPanel
           id={FILTERS_ID}
-          open={filtersOpen}
+          variant="sidebar"
           filters={state}
           onChange={explorer.setFilters}
           onClear={explorer.clearFilters}
         />
-        <Results explorer={explorer} />
+        <Results
+          explorer={explorer}
+          toolbar={
+            <div className={styles.toolbar}>
+              <SearchBox value={state.q} onCommit={explorer.setSearch} historyKey={historyKey} />
+              {/* Narrow screens: the sidebar is hidden and filters open in a sheet (modal dialog). */}
+              <Button
+                ref={filtersToggleRef}
+                className={styles.filtersToggle}
+                icon="sliders"
+                aria-haspopup="dialog"
+                onClick={() => setFiltersOpen(true)}
+              >
+                Filters{activeFilters > 0 ? ` (${activeFilters})` : ''}
+              </Button>
+              {/* Narrow layouts hide some sortable columns; this keeps every sort reachable (WCAG 1.4.10). */}
+              <SelectField
+                className={styles.sortSelect}
+                label="Sort by"
+                hideLabel
+                options={SORT_OPTIONS}
+                value={encodeSort(state.sort)}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const parsed = Sort.safeParse({
+                    field: raw.replace(/^-/, ''),
+                    dir: raw.startsWith('-') ? 'desc' : 'asc',
+                  });
+                  if (parsed.success) explorer.setSort(parsed.data);
+                }}
+              />
+            </div>
+          }
+        />
       </div>
+      {filtersOpen && (
+        <Drawer
+          title="Filters"
+          closeLabel="Close filters"
+          onClose={() => setFiltersOpen(false)}
+          // Explicit: Safari doesn't focus buttons on click, so "previously focused" may be <body>.
+          returnFocus={() => filtersToggleRef.current?.focus()}
+        >
+          <FiltersPanel
+            id={`${FILTERS_ID}-sheet`}
+            variant="sheet"
+            filters={state}
+            onChange={explorer.setFilters}
+            onClear={explorer.clearFilters}
+            onDone={() => setFiltersOpen(false)}
+          />
+        </Drawer>
+      )}
       {/* Nested detail route (drawer) renders here, over the still-mounted list. */}
       <Outlet />
     </div>
   );
 }
 
-function Results({ explorer }: { explorer: ExplorerParams }) {
+function Results({ explorer, toolbar }: { explorer: ExplorerParams; toolbar: ReactNode }) {
   const { state } = explorer;
   const setKey = resultSetKey(state);
   const [window, setWindow] = useState<RowWindow | null>(null);
@@ -93,6 +141,7 @@ function Results({ explorer }: { explorer: ExplorerParams }) {
 
   return (
     <section className={styles.results} aria-labelledby={HEADING_ID}>
+      {toolbar}
       <div className={styles.summary}>
         <p ref={summaryRef} tabIndex={-1} className={styles.count}>
           {list.kind === 'ready' && `${formatCount(list.total)} ${list.total === 1 ? 'ticket' : 'tickets'}`}
@@ -104,27 +153,8 @@ function Results({ explorer }: { explorer: ExplorerParams }) {
           onChange={explorer.setFilters}
           onAllRemoved={() => summaryRef.current?.focus()}
         />
-        {/* Narrow layouts hide some sortable columns; this keeps every sort reachable (WCAG 1.4.10). */}
-        <SelectField
-          className={styles.sortSelect}
-          label="Sort by"
-          options={SORT_OPTIONS}
-          value={encodeSort(state.sort)}
-          onChange={(e) => {
-            const raw = e.target.value;
-            const parsed = Sort.safeParse({
-              field: raw.replace(/^-/, ''),
-              dir: raw.startsWith('-') ? 'desc' : 'asc',
-            });
-            if (parsed.success) explorer.setSort(parsed.data);
-          }}
-        />
       </div>
 
-      {list.kind === 'error' && (
-        <ErrorState error={list.error} retrying={list.retrying} onRetry={retry(list.retry)} />
-      )}
-      {list.kind === 'empty' && <EmptyState canClear={hasQuery} onClear={explorer.clearAll} />}
       {list.kind === 'ready' && list.failedPages.length > 0 && (
         <PartialFailureBanner
           pages={list.failedPages}
@@ -132,28 +162,34 @@ function Results({ explorer }: { explorer: ExplorerParams }) {
           onRetry={retry(list.retryFailed)}
         />
       )}
-      {(list.kind === 'loading' || list.kind === 'ready') && (
-        <TicketGrid
-          list={list}
-          row={state.row}
-          sort={state.sort}
-          query={state.q}
-          labelledBy={HEADING_ID}
-          onSort={explorer.setSort}
-          onWindowChange={setWindow}
-          onAnchorRowChange={explorer.setAnchorRow}
-          onOpen={explorer.openTicket}
-        />
-      )}
-      {list.kind === 'ready' && (
-        <Pager
-          total={list.total}
-          pageSize={PAGE_SIZE}
-          row={state.row}
-          visible={visible}
-          onJump={explorer.jumpToRow}
-        />
-      )}
+      <div className={styles.card}>
+        {list.kind === 'error' && (
+          <ErrorState error={list.error} retrying={list.retrying} onRetry={retry(list.retry)} />
+        )}
+        {list.kind === 'empty' && <EmptyState canClear={hasQuery} onClear={explorer.clearAll} />}
+        {(list.kind === 'loading' || list.kind === 'ready') && (
+          <TicketGrid
+            list={list}
+            row={state.row}
+            sort={state.sort}
+            query={state.q}
+            labelledBy={HEADING_ID}
+            onSort={explorer.setSort}
+            onWindowChange={setWindow}
+            onAnchorRowChange={explorer.setAnchorRow}
+            onOpen={explorer.openTicket}
+          />
+        )}
+        {list.kind === 'ready' && (
+          <Pager
+            total={list.total}
+            pageSize={PAGE_SIZE}
+            row={state.row}
+            visible={visible}
+            onJump={explorer.jumpToRow}
+          />
+        )}
+      </div>
     </section>
   );
 }

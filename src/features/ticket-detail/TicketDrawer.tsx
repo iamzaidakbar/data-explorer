@@ -63,7 +63,26 @@ export function TicketDrawerRoute() {
   const title = query.data?.subject ?? (notFound ? 'Ticket not found' : ticketId);
 
   return (
-    <Drawer title={title} onClose={close} returnFocus={returnFocus} closeLabel="Close ticket details">
+    <Drawer
+      title={title}
+      subtitle={
+        query.data && !query.isError ? (
+          <div className={styles.subtitle}>
+            <span className={styles.ticketId}>{query.data.id}</span>
+            <Badge tone={STATUS_TONE[query.data.status]} dot>
+              {STATUS_LABEL[query.data.status]}
+            </Badge>
+            <Badge tone={PRIORITY_TONE[query.data.priority]}>
+              {PRIORITY_LABEL[query.data.priority]} priority
+            </Badge>
+            {query.data.slaBreached && <Badge tone="danger">SLA breached</Badge>}
+          </div>
+        ) : undefined
+      }
+      onClose={close}
+      returnFocus={returnFocus}
+      closeLabel="Close ticket details"
+    >
       {notFound ? (
         <p>
           There is no ticket with ID <strong>{ticketId}</strong>. It may have been mistyped in the link.
@@ -104,52 +123,42 @@ export function TicketDrawerRoute() {
 function TicketDetails({ ticket }: { ticket: Ticket }) {
   return (
     <>
-      <dl className={styles.fields}>
-        <dt>Ticket</dt>
-        <dd>{ticket.id}</dd>
-        <dt>Status</dt>
-        <dd>
-          <Badge tone={STATUS_TONE[ticket.status]}>{STATUS_LABEL[ticket.status]}</Badge>
-        </dd>
-        <dt>Priority</dt>
-        <dd>
-          <Badge tone={PRIORITY_TONE[ticket.priority]}>{PRIORITY_LABEL[ticket.priority]}</Badge>
-          {ticket.slaBreached && (
-            <>
-              {' '}
-              <Badge tone="danger">SLA breached</Badge>
-            </>
-          )}
-        </dd>
-        <dt>Customer</dt>
-        <dd>
-          {ticket.customer.name}
-          <br />
-          <span className={styles.muted}>{ticket.customer.email}</span>
-        </dd>
-        <dt>Assignee</dt>
-        <dd>{ticket.assignee ?? <span className={styles.muted}>Unassigned</span>}</dd>
-        <dt>Channel</dt>
-        <dd>{CHANNEL_LABEL[ticket.channel]}</dd>
-        <dt>Messages</dt>
-        <dd>{formatCount(ticket.messageCount)}</dd>
-        <dt>Created</dt>
-        <dd>{formatDateTime(ticket.createdAt)}</dd>
-        <dt>Updated</dt>
-        <dd>{formatDateTime(ticket.updatedAt)}</dd>
-        <dt>Tags</dt>
-        <dd>
-          {ticket.tags.length > 0 ? (
-            <span className={styles.tags}>
-              {ticket.tags.map((tag) => (
-                <Badge key={tag}>{tag}</Badge>
-              ))}
-            </span>
-          ) : (
-            <span className={styles.muted}>None</span>
-          )}
-        </dd>
-      </dl>
+      <section className={styles.section} aria-labelledby="ticket-details">
+        <h3 id="ticket-details" className={styles.sectionTitle}>
+          Details
+        </h3>
+        <dl className={styles.fields}>
+          <dt>Customer</dt>
+          <dd>
+            {ticket.customer.name}
+            <span className={styles.secondary}>{ticket.customer.email}</span>
+          </dd>
+          <dt>Assignee</dt>
+          <dd>{ticket.assignee ?? <span className={styles.muted}>Unassigned</span>}</dd>
+          <dt>Channel</dt>
+          <dd>{CHANNEL_LABEL[ticket.channel]}</dd>
+          <dt>Messages</dt>
+          <dd>{formatCount(ticket.messageCount)}</dd>
+          <dt>Created</dt>
+          <dd>{formatDateTime(ticket.createdAt)}</dd>
+          <dt>Updated</dt>
+          <dd>{formatDateTime(ticket.updatedAt)}</dd>
+          <dt>Tags</dt>
+          <dd>
+            {ticket.tags.length > 0 ? (
+              <span className={styles.tags}>
+                {ticket.tags.map((tag) => (
+                  <Badge key={tag} tone="outline">
+                    {tag}
+                  </Badge>
+                ))}
+              </span>
+            ) : (
+              <span className={styles.muted}>None</span>
+            )}
+          </dd>
+        </dl>
+      </section>
       <section className={styles.section} aria-labelledby="ticket-description">
         <h3 id="ticket-description" className={styles.sectionTitle}>
           Description

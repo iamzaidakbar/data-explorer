@@ -1,7 +1,7 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Sort } from '../../shared/contract';
-import { Skeleton } from '../../ui';
+import { Icon, Skeleton } from '../../ui';
 import { COLUMNS, getRowHeight, type Column } from './columns';
 import { SLOW_HINT_MS } from './ListStates';
 import { TicketRow } from './TicketRow';
@@ -72,9 +72,11 @@ export function TicketGrid({ list, row, sort, query, labelledBy, onSort, ...body
                     onClick={() => onSort(next)}
                   >
                     {column.label}
-                    <span aria-hidden="true" className={styles.sortIcon}>
-                      {active ? (sort.dir === 'asc' ? '▲' : '▼') : ''}
-                    </span>
+                    <Icon
+                      name={active ? (sort.dir === 'asc' ? 'chevronUp' : 'chevronDown') : 'chevronsUpDown'}
+                      size={14}
+                      className={styles.sortIcon}
+                    />
                   </button>
                 ) : (
                   column.label
@@ -101,18 +103,25 @@ function LoadingBody({ query }: { query: string }) {
   }, []);
   return (
     <div role="rowgroup" className={styles.body}>
-      <div role="row" className={`${styles.row} ${styles.loadingRow}`}>
+      <div role="row" className={styles.loadingRow}>
         <div role="gridcell" aria-colindex={1} aria-colspan={COLUMNS.length} className={styles.loadingCell}>
-          <p className={styles.stateTitle}>{query ? `Searching for “${query}”…` : 'Loading tickets…'}</p>
+          <p className={styles.loadingTitle}>{query ? `Searching for “${query}”…` : 'Loading tickets…'}</p>
           {slow && (
-            <p className={styles.muted}>The server is responding slowly. Still waiting for results…</p>
+            <p className={styles.loadingHint}>The server is responding slowly. Still waiting for results…</p>
           )}
+          {/* Placeholder rows laid out on the real column grid, so nothing shifts when data arrives. */}
           <div className={styles.skeletonRows} aria-hidden="true">
             {Array.from({ length: 8 }, (_, i) => (
-              <div key={i} className={styles.skeletonRow}>
-                <Skeleton width={`${55 + ((i * 17) % 40)}%`} />
-                <Skeleton />
-                <Skeleton />
+              <div key={i} className={`${styles.row} ${styles.skeletonRow}`}>
+                <span className={`${styles.cell} ${styles.skeletonStack}`}>
+                  <Skeleton width={`${50 + ((i * 17) % 35)}%`} />
+                  <Skeleton width="30%" />
+                </span>
+                {COLUMNS.slice(1).map((column) => (
+                  <span key={column.id} className={colClass(column.id)}>
+                    <Skeleton width="70%" />
+                  </span>
+                ))}
               </div>
             ))}
           </div>
@@ -174,6 +183,20 @@ function GridBody({ list, row, onWindowChange, onAnchorRowChange, onOpen }: Grid
   }
 
   useEffect(() => () => clearTimeout(anchorTimer.current), []);
+
+  // The scrollbar narrows the body's rows; publish its width so the header row can pad itself to match.
+  useLayoutEffect(() => {
+    const body = scrollRef.current;
+    const gridEl = body?.parentElement;
+    if (!body || !gridEl) return;
+    const measure = () =>
+      gridEl.style.setProperty('--scrollbar-width', `${body.offsetWidth - body.clientWidth}px`);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(body);
+    return () => observer.disconnect();
+  }, []);
 
   // External anchor changes (pager, Back/Forward, edited URL) scroll the grid; our own writes are ignored.
   useEffect(() => {
