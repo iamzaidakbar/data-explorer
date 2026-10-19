@@ -22,7 +22,7 @@
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm size"
   },
   "dependencies": {
-    "@tanstack/react-query": "5.104.2",
+    "@tanstack/react-query": "5.104.3",
     "@tanstack/react-virtual": "3.14.15",
     "react": "19.3.0",
     "react-dom": "19.3.0",
